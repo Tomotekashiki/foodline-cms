@@ -27,3 +27,5 @@ Homestead.yaml
 Thumbs.db
 *.sqlite-journal
 .vercel
+/.agents
+/skills-lock.json
