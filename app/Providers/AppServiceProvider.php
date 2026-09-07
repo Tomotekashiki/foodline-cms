@@ -21,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
     {
         if (isset($_SERVER['VERCEL']) || isset($_ENV['VERCEL']) || getenv('VERCEL') || app()->environment('production')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
+            $appUrl = env('APP_URL') ?: 'https://foodline-cms.vercel.app';
+            \Illuminate\Support\Facades\URL::forceRootUrl($appUrl);
         }
 
         \Illuminate\Support\Facades\Storage::extend('vercel_blob', function ($app, $config) {

@@ -21,6 +21,12 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
         putenv('BCRYPT_ROUNDS=12');
     }
 
+    if (empty($_ENV['APP_URL']) || $_ENV['APP_URL'] === 'http://localhost' || $_ENV['APP_URL'] === 'http://127.0.0.1:8000') {
+        $_ENV['APP_URL'] = 'https://foodline-cms.vercel.app';
+        $_SERVER['APP_URL'] = 'https://foodline-cms.vercel.app';
+        putenv('APP_URL=https://foodline-cms.vercel.app');
+    }
+
     if (empty($_ENV['FILESYSTEM_DISK'])) {
         $_ENV['FILESYSTEM_DISK'] = 'local';
         $_SERVER['FILESYSTEM_DISK'] = 'local';
@@ -31,6 +37,9 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
     $storageDirs = [
         '/tmp/storage/app/public',
         '/tmp/storage/app/private',
+        '/tmp/storage/app/private/livewire-tmp',
+        '/tmp/storage/app/public/livewire-tmp',
+        '/tmp/storage/app/livewire-tmp',
         '/tmp/storage/framework/cache/data',
         '/tmp/storage/framework/sessions',
         '/tmp/storage/framework/testing',
@@ -80,6 +89,8 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
     $_SERVER['PHP_SELF'] = '/index.php';
     $_SERVER['HTTPS'] = 'on';
     $_SERVER['SERVER_PORT'] = '443';
+    $_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';
+    $_SERVER['HTTP_X_FORWARDED_PORT'] = '443';
 }
 
 require __DIR__ . '/../public/index.php';
