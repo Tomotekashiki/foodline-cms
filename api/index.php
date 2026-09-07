@@ -1,10 +1,20 @@
 <?php
 
 // Forward Vercel Serverless Function requests to Laravel
-if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL'])) {
+if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
+    // Set storage path and logging before Laravel boots
+    $_ENV['LARAVEL_STORAGE_PATH'] = '/tmp/storage';
+    $_SERVER['LARAVEL_STORAGE_PATH'] = '/tmp/storage';
+    putenv('LARAVEL_STORAGE_PATH=/tmp/storage');
+
+    $_ENV['LOG_CHANNEL'] = 'stderr';
+    $_SERVER['LOG_CHANNEL'] = 'stderr';
+    putenv('LOG_CHANNEL=stderr');
+
     // 1. Create writable storage directories in /tmp
     $storageDirs = [
         '/tmp/storage/app/public',
+        '/tmp/storage/app/private',
         '/tmp/storage/framework/cache/data',
         '/tmp/storage/framework/sessions',
         '/tmp/storage/framework/testing',
