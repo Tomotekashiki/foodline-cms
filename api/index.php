@@ -2,6 +2,7 @@
 
 // Forward Vercel Serverless Function requests to Laravel
 if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL'])) {
+    // 1. Create writable storage directories in /tmp
     $storageDirs = [
         '/tmp/storage/app/public',
         '/tmp/storage/framework/cache/data',
@@ -16,6 +17,18 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL'])) {
             mkdir($dir, 0755, true);
         }
     }
+
+    // 2. Setup SQLite database in writable /tmp
+    $sourceDb = __DIR__ . '/../database/database.sqlite';
+    $targetDb = '/tmp/database.sqlite';
+    if (!file_exists($targetDb) && file_exists($sourceDb)) {
+        copy($sourceDb, $targetDb);
+    } elseif (!file_exists($targetDb)) {
+        touch($targetDb);
+    }
+    $_ENV['DB_DATABASE'] = $targetDb;
+    $_SERVER['DB_DATABASE'] = $targetDb;
+    putenv("DB_DATABASE={$targetDb}");
 }
 
 require __DIR__ . '/../public/index.php';
