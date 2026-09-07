@@ -21,6 +21,12 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
         putenv('BCRYPT_ROUNDS=12');
     }
 
+    if (empty($_ENV['FILESYSTEM_DISK'])) {
+        $_ENV['FILESYSTEM_DISK'] = 'local';
+        $_SERVER['FILESYSTEM_DISK'] = 'local';
+        putenv('FILESYSTEM_DISK=local');
+    }
+
     // 1. Create writable storage directories in /tmp
     $storageDirs = [
         '/tmp/storage/app/public',
