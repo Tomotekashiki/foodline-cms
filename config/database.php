@@ -99,6 +99,21 @@ return [
             'sslmode' => env('DB_SSLMODE', 'require'),
         ],
 
+        'pgsql_admin' => [
+            'driver' => 'pgsql',
+            'url' => env('ADMIN_DB_URL'),
+            'host' => env('ADMIN_DB_HOST') ?: env('DB_HOST') ?: env('POSTGRES_HOST', '127.0.0.1'),
+            'port' => env('ADMIN_DB_PORT') ?: env('DB_PORT') ?: env('POSTGRES_PORT', '5432'),
+            'database' => env('ADMIN_DB_DATABASE', 'foodline_admin'),
+            'username' => env('ADMIN_DB_USERNAME') ?: env('DB_USERNAME') ?: env('POSTGRES_USER', 'root'),
+            'password' => env('ADMIN_DB_PASSWORD') ?: env('DB_PASSWORD') ?: env('POSTGRES_PASSWORD', ''),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => env('DB_SEARCH_PATH', 'public'),
+            'sslmode' => env('DB_SSLMODE', 'require'),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),

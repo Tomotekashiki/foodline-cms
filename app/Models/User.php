@@ -20,6 +20,13 @@ class User extends Authenticatable implements FilamentUser
     use HasFactory, Notifiable;
 
     /**
+     * The database connection that should be used by the model.
+     *
+     * @var string
+     */
+    protected $connection = 'pgsql_admin';
+
+    /**
      * Authorize user to access Filament panel in production.
      */
     public function canAccessPanel(Panel $panel): bool
