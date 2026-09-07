@@ -11,6 +11,10 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
     $_SERVER['LOG_CHANNEL'] = 'stderr';
     putenv('LOG_CHANNEL=stderr');
 
+    $_ENV['APP_MAINTENANCE_DRIVER'] = 'file';
+    $_SERVER['APP_MAINTENANCE_DRIVER'] = 'file';
+    putenv('APP_MAINTENANCE_DRIVER=file');
+
     // 1. Create writable storage directories in /tmp
     $storageDirs = [
         '/tmp/storage/app/public',
