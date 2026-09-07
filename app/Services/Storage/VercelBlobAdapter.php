@@ -1,15 +1,15 @@
 <?php
 
-namespace AppServicesStorage;
+namespace App\Services\Storage;
 
-use IlluminateSupportFacadesHttp;
-use LeagueFlysystemConfig;
-use LeagueFlysystemFileAttributes;
-use LeagueFlysystemFilesystemAdapter;
-use LeagueFlysystemStorageAttributes;
-use LeagueFlysystemUnableToReadFile;
-use LeagueFlysystemUnableToWriteFile;
-use LeagueFlysystemUrlGenerationPublicUrlGenerator;
+use Illuminate\Support\Facades\Http;
+use League\Flysystem\Config;
+use League\Flysystem\FileAttributes;
+use League\Flysystem\FilesystemAdapter;
+use League\Flysystem\StorageAttributes;
+use League\Flysystem\UnableToReadFile;
+use League\Flysystem\UnableToWriteFile;
+use League\Flysystem\UrlGeneration\PublicUrlGenerator;
 
 class VercelBlobAdapter implements FilesystemAdapter, PublicUrlGenerator
 {
