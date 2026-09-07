@@ -46,7 +46,8 @@
     "VIEW_COMPILED_PATH": "/tmp/storage/framework/views",
     "LARAVEL_STORAGE_PATH": "/tmp/storage",
     "CACHE_STORE": "array",
-    "SESSION_DRIVER": "cookie",
+    "SESSION_DRIVER": "database",
+    "SESSION_CONNECTION": "pgsql_admin",
     "LOG_CHANNEL": "stderr"
   }
 }
