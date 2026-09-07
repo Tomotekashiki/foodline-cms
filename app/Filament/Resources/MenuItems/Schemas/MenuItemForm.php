@@ -36,7 +36,8 @@ class MenuItemForm
                     ->numeric()
                     ->prefix('$'),
                 FileUpload::make('image_url')
-                    ->disk('static_images')
+                    ->disk(env('BLOB_READ_WRITE_TOKEN') ? 'vercel_blob' : 'static_images')
+                    ->directory('menu-items')
                     ->image(),
                 Select::make('category')
                     ->label('Category')

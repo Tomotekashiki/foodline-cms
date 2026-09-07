@@ -17,6 +17,9 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
         if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://') || str_starts_with($image, '//')) {
             return $image;
         }
+        if (env('BLOB_READ_WRITE_TOKEN')) {
+            return \Illuminate\Support\Facades\Storage::disk('vercel_blob')->url($image);
+        }
         return rtrim(env('APP_URL', 'http://127.0.0.1:8000'), '/') . '/static/image/' . ltrim($image, '/');
     };
 

@@ -46,7 +46,8 @@ class PageForm
                     ->columns(2),
                 
                 FileUpload::make('seo_image')
-                    ->disk('static_images')
+                    ->disk(env('BLOB_READ_WRITE_TOKEN') ? 'vercel_blob' : 'static_images')
+                    ->directory('pages')
                     ->image(),
             ]);
     }

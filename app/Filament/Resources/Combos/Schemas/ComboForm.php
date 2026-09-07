@@ -62,7 +62,8 @@ class ComboForm
                     ->numeric(),
                 FileUpload::make('image_url')
                     ->label('Image')
-                    ->disk('static_images')
+                    ->disk(env('BLOB_READ_WRITE_TOKEN') ? 'vercel_blob' : 'static_images')
+                    ->directory('combos')
                     ->image(),
                 TextInput::make('badge')
                     ->label('Badge')

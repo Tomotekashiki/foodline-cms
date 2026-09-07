@@ -69,6 +69,12 @@ return [
             'report' => false,
         ],
 
+        'vercel_blob' => [
+            'driver' => 'vercel_blob',
+            'token' => env('BLOB_READ_WRITE_TOKEN'),
+            'store_id' => env('BLOB_STORE_ID', 'store_nzdYLU76rjWPnz8T'),
+        ],
+
     ],
 
     /*
