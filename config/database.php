@@ -86,10 +86,13 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('DB_URL') ?: env('POSTGRES_URL') ?: env('DATABASE_URL'),
+            'url' => (function() {
+                $url = env('DB_URL') ?: env('POSTGRES_URL') ?: env('DATABASE_URL');
+                return $url ? str_replace('/neondb', '/foodline_web', $url) : null;
+            })(),
             'host' => env('DB_HOST') ?: env('POSTGRES_HOST', '127.0.0.1'),
             'port' => env('DB_PORT') ?: env('POSTGRES_PORT', '5432'),
-            'database' => env('DB_DATABASE') ?: env('POSTGRES_DATABASE', 'laravel'),
+            'database' => env('DB_DATABASE') ?: (env('POSTGRES_DATABASE') === 'neondb' ? 'foodline_web' : env('POSTGRES_DATABASE', 'foodline_web')),
             'username' => env('DB_USERNAME') ?: env('POSTGRES_USER', 'root'),
             'password' => env('DB_PASSWORD') ?: env('POSTGRES_PASSWORD', ''),
             'charset' => env('DB_CHARSET', 'utf8'),
