@@ -15,6 +15,12 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
     $_SERVER['APP_MAINTENANCE_DRIVER'] = 'file';
     putenv('APP_MAINTENANCE_DRIVER=file');
 
+    if (empty($_ENV['BCRYPT_ROUNDS'])) {
+        $_ENV['BCRYPT_ROUNDS'] = '12';
+        $_SERVER['BCRYPT_ROUNDS'] = '12';
+        putenv('BCRYPT_ROUNDS=12');
+    }
+
     // 1. Create writable storage directories in /tmp
     $storageDirs = [
         '/tmp/storage/app/public',
