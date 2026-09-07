@@ -51,11 +51,13 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
     $_SERVER['DB_DATABASE'] = $targetDb;
     putenv("DB_DATABASE={$targetDb}");
 
-    // 3. Fix script/path for Laravel routing on Vercel
+    // 3. Fix script/path and HTTPS scheme for Laravel on Vercel
     // vercel-php executes /api/index.php which sets SCRIPT_NAME to /api/index.php,
     // causing Laravel's Request::getBaseUrl() to strip /api from /api/menu-items.
     $_SERVER['SCRIPT_NAME'] = '/index.php';
     $_SERVER['PHP_SELF'] = '/index.php';
+    $_SERVER['HTTPS'] = 'on';
+    $_SERVER['SERVER_PORT'] = '443';
 }
 
 require __DIR__ . '/../public/index.php';
