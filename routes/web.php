@@ -30,6 +30,47 @@ Route::get('/debug-env', function () {
                 return 'Error: ' . $e->getMessage();
             }
         })(),
+        'hashing_config' => config('hashing'),
+        'test_cost_int' => (function() {
+            try {
+                return password_hash('secret', PASSWORD_BCRYPT, ['cost' => 12]);
+            } catch (\Throwable $e) {
+                return 'Error: ' . $e->getMessage() . ' (' . get_class($e) . ')';
+            }
+        })(),
+        'test_cost_string' => (function() {
+            try {
+                return password_hash('secret', PASSWORD_BCRYPT, ['cost' => '12']);
+            } catch (\Throwable $e) {
+                return 'Error: ' . $e->getMessage() . ' (' . get_class($e) . ')';
+            }
+        })(),
+        'test_cost_from_config' => (function() {
+            try {
+                $rounds = config('hashing.bcrypt.rounds');
+                return [
+                    'rounds_val' => $rounds,
+                    'rounds_type' => gettype($rounds),
+                    'result' => password_hash('secret', PASSWORD_BCRYPT, ['cost' => $rounds]),
+                ];
+            } catch (\Throwable $e) {
+                return 'Error: ' . $e->getMessage() . ' (' . get_class($e) . ')';
+            }
+        })(),
+        'test_argon2id' => (function() {
+            try {
+                return password_hash('secret', PASSWORD_ARGON2ID);
+            } catch (\Throwable $e) {
+                return 'Error: ' . $e->getMessage();
+            }
+        })(),
+        'test_hash_argon2id_make' => (function() {
+            try {
+                return app('hash')->driver('argon2id')->make('secret');
+            } catch (\Throwable $e) {
+                return 'Error: ' . $e->getMessage() . ' (' . get_class($e) . ')';
+            }
+        })(),
         'test_hash_make' => (function() {
             try {
                 return \Illuminate\Support\Facades\Hash::make('secret');
