@@ -152,26 +152,4 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
             'disabled_dates' => $setting?->disabled_dates ?? [],
         ]);
     });
-
-    Route::get('/test-blob', function () {
-        try {
-            $disk = \Illuminate\Support\Facades\Storage::disk('vercel_blob');
-            $testFilename = 'test-' . time() . '.txt';
-            $disk->put($testFilename, 'Hello from Vercel Blob at ' . date('c'));
-            $url = $disk->url($testFilename);
-            $size = $disk->size($testFilename);
-            return response()->json([
-                'success' => true,
-                'filename' => $testFilename,
-                'url' => $url,
-                'size' => $size,
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ], 500);
-        }
-    });
 });
