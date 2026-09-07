@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Services\Storage;
+namespace AppServicesStorage;
 
-use Illuminate\Support\Facades\Http;
-use League\Flysystem\Config;
-use League\Flysystem\FileAttributes;
-use League\Flysystem\FilesystemAdapter;
-use League\Flysystem\StorageAttributes;
-use League\Flysystem\UnableToReadFile;
-use League\Flysystem\UnableToWriteFile;
-use League\Flysystem\UrlGeneration\PublicUrlGenerator;
+use IlluminateSupportFacadesHttp;
+use LeagueFlysystemConfig;
+use LeagueFlysystemFileAttributes;
+use LeagueFlysystemFilesystemAdapter;
+use LeagueFlysystemStorageAttributes;
+use LeagueFlysystemUnableToReadFile;
+use LeagueFlysystemUnableToWriteFile;
+use LeagueFlysystemUrlGenerationPublicUrlGenerator;
 
 class VercelBlobAdapter implements FilesystemAdapter, PublicUrlGenerator
 {
@@ -19,13 +19,21 @@ class VercelBlobAdapter implements FilesystemAdapter, PublicUrlGenerator
     public function __construct(?string $token = null, ?string $storeId = null)
     {
         $this->token = $token ?: (string) env('BLOB_READ_WRITE_TOKEN', '');
-        $this->storeId = $storeId ?: (string) env('BLOB_STORE_ID', '');
+        $rawStoreId = $storeId ?: (string) env('BLOB_STORE_ID', '');
+        $this->storeId = preg_replace('/^store_/', '', $rawStoreId);
+
+        if (empty($this->storeId) && !empty($this->token)) {
+            $parts = explode('_', $this->token);
+            if (count($parts) >= 4) {
+                $this->storeId = $parts[3];
+            }
+        }
     }
 
     public function getUrl(string $path): string
     {
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return $path;
+            return preg_replace('/^https:\/\/store_([a-zA-Z0-9]+)\.public\.blob\.vercel-storage\.com\//', 'https://$1.public.blob.vercel-storage.com/', $path);
         }
 
         $path = ltrim($path, '/');
@@ -37,6 +45,16 @@ class VercelBlobAdapter implements FilesystemAdapter, PublicUrlGenerator
     }
 
     public function publicUrl(string $path, Config $config): string
+    {
+        return $this->getUrl($path);
+    }
+
+    public function getTemporaryUrl(string $path, \DateTimeInterface $expiration, array $options = []): string
+    {
+        return $this->getUrl($path);
+    }
+
+    public function temporaryUrl(string $path, \DateTimeInterface $expiration, array $options = []): string
     {
         return $this->getUrl($path);
     }
@@ -60,7 +78,7 @@ class VercelBlobAdapter implements FilesystemAdapter, PublicUrlGenerator
     public function write(string $path, string $contents, Config $config): void
     {
         $path = ltrim($path, '/');
-        $endpoint = "https://blob.vercel-storage.com/{$path}";
+        $endpoint = 'https://blob.vercel-storage.com/?pathname=' . rawurlencode($path);
 
         $mime = $config->get('ContentType') ?: $config->get('mimetype');
         if (!$mime) {
@@ -76,20 +94,16 @@ class VercelBlobAdapter implements FilesystemAdapter, PublicUrlGenerator
 
         $headers = [
             'Authorization' => "Bearer {$this->token}",
-            'x-api-version' => '7',
+            'x-api-version' => '12',
+            'x-vercel-blob-access' => 'public',
+            'x-add-random-suffix' => '0',
+            'x-allow-overwrite' => '1',
             'Content-Type' => $mime,
         ];
 
-        // Attempt deterministic path first
         $response = Http::withHeaders($headers)
             ->withBody($contents, $mime)
-            ->put("{$endpoint}?addRandomSuffix=false");
-
-        if (!$response->successful()) {
-            $response = Http::withHeaders($headers)
-                ->withBody($contents, $mime)
-                ->put($endpoint);
-        }
+            ->put($endpoint);
 
         if (!$response->successful()) {
             throw UnableToWriteFile::atLocation($path, $response->body());
@@ -130,10 +144,10 @@ class VercelBlobAdapter implements FilesystemAdapter, PublicUrlGenerator
         try {
             Http::withHeaders([
                 'Authorization' => "Bearer {$this->token}",
-                'x-api-version' => '7',
+                'x-api-version' => '12',
                 'Content-Type' => 'application/json',
             ])->post('https://blob.vercel-storage.com/delete', [
-                'urls' => [$url],
+                'urls' => array_values(array_unique([$url, "https://blob.vercel-storage.com/{$path}"])),
             ]);
         } catch (\Throwable) {
             // Delete best-effort
@@ -142,7 +156,24 @@ class VercelBlobAdapter implements FilesystemAdapter, PublicUrlGenerator
 
     public function deleteDirectory(string $path): void
     {
-        // Flat object store
+        $files = $this->listContents($path, true);
+        $urls = [];
+        foreach ($files as $file) {
+            $urls[] = $this->getUrl($file->path());
+        }
+
+        if (!empty($urls)) {
+            try {
+                Http::withHeaders([
+                    'Authorization' => "Bearer {$this->token}",
+                    'x-api-version' => '12',
+                    'Content-Type' => 'application/json',
+                ])->post('https://blob.vercel-storage.com/delete', [
+                    'urls' => array_values(array_unique($urls)),
+                ]);
+            } catch (\Throwable) {
+            }
+        }
     }
 
     public function createDirectory(string $path, Config $config): void
@@ -198,6 +229,39 @@ class VercelBlobAdapter implements FilesystemAdapter, PublicUrlGenerator
 
     public function listContents(string $path, bool $deep): iterable
     {
+        $prefix = trim($path, '/');
+        if ($prefix !== '') {
+            $prefix .= '/';
+        }
+
+        $params = ['limit' => 1000];
+        if ($prefix !== '') {
+            $params['prefix'] = $prefix;
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$this->token}",
+                'x-api-version' => '12',
+            ])->get('https://blob.vercel-storage.com/?' . http_build_query($params));
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $blobs = $data['blobs'] ?? [];
+                $results = [];
+                foreach ($blobs as $blob) {
+                    $results[] = new FileAttributes(
+                        $blob['pathname'],
+                        $blob['size'] ?? null,
+                        'public',
+                        isset($blob['uploadedAt']) ? strtotime($blob['uploadedAt']) : null
+                    );
+                }
+                return $results;
+            }
+        } catch (\Throwable) {
+        }
+
         return [];
     }
 

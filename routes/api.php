@@ -15,7 +15,7 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
     $formatImageUrl = function($image) {
         if (!$image) return null;
         if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://') || str_starts_with($image, '//')) {
-            return $image;
+            return preg_replace('/^https:\/\/store_([a-zA-Z0-9]+)\.public\.blob\.vercel-storage\.com\//', 'https://$1.public.blob.vercel-storage.com/', $image);
         }
         if (env('BLOB_READ_WRITE_TOKEN')) {
             return \Illuminate\Support\Facades\Storage::disk('vercel_blob')->url($image);
@@ -151,5 +151,27 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
             'min_booking_days_ahead' => (int) ($setting?->min_booking_days_ahead ?? 1),
             'disabled_dates' => $setting?->disabled_dates ?? [],
         ]);
+    });
+
+    Route::get('/test-blob', function () {
+        try {
+            $disk = \Illuminate\Support\Facades\Storage::disk('vercel_blob');
+            $testFilename = 'test-' . time() . '.txt';
+            $disk->put($testFilename, 'Hello from Vercel Blob at ' . date('c'));
+            $url = $disk->url($testFilename);
+            $size = $disk->size($testFilename);
+            return response()->json([
+                'success' => true,
+                'filename' => $testFilename,
+                'url' => $url,
+                'size' => $size,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ], 500);
+        }
     });
 });
