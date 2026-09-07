@@ -38,24 +38,34 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
         }
     }
 
-    // 2. Setup SQLite database in writable /tmp
-    $sourceDb = __DIR__ . '/../database/database.sqlite';
-    $sourceB64 = __DIR__ . '/../database/database.sqlite.base64';
-    $targetDb = '/tmp/database.sqlite';
-    if (file_exists($sourceDb) && filesize($sourceDb) > 1000) {
-        if (!file_exists($targetDb) || filesize($targetDb) < 1000) {
-            copy($sourceDb, $targetDb);
+    // 2. Setup Database (PostgreSQL if POSTGRES_URL / POSTGRES_HOST / pgsql, otherwise SQLite in /tmp)
+    $hasPostgres = !empty($_ENV['POSTGRES_URL']) || !empty(getenv('POSTGRES_URL')) ||
+                   !empty($_ENV['POSTGRES_HOST']) || !empty(getenv('POSTGRES_HOST')) ||
+                   (isset($_ENV['DB_CONNECTION']) && $_ENV['DB_CONNECTION'] === 'pgsql');
+
+    if ($hasPostgres) {
+        $_ENV['DB_CONNECTION'] = 'pgsql';
+        $_SERVER['DB_CONNECTION'] = 'pgsql';
+        putenv('DB_CONNECTION=pgsql');
+    } else {
+        $sourceDb = __DIR__ . '/../database/database.sqlite';
+        $sourceB64 = __DIR__ . '/../database/database.sqlite.base64';
+        $targetDb = '/tmp/database.sqlite';
+        if (file_exists($sourceDb) && filesize($sourceDb) > 1000) {
+            if (!file_exists($targetDb) || filesize($targetDb) < 1000) {
+                copy($sourceDb, $targetDb);
+            }
+        } elseif (file_exists($sourceB64)) {
+            if (!file_exists($targetDb) || filesize($targetDb) < 1000) {
+                file_put_contents($targetDb, base64_decode(file_get_contents($sourceB64)));
+            }
+        } elseif (!file_exists($targetDb)) {
+            touch($targetDb);
         }
-    } elseif (file_exists($sourceB64)) {
-        if (!file_exists($targetDb) || filesize($targetDb) < 1000) {
-            file_put_contents($targetDb, base64_decode(file_get_contents($sourceB64)));
-        }
-    } elseif (!file_exists($targetDb)) {
-        touch($targetDb);
+        $_ENV['DB_DATABASE'] = $targetDb;
+        $_SERVER['DB_DATABASE'] = $targetDb;
+        putenv("DB_DATABASE={$targetDb}");
     }
-    $_ENV['DB_DATABASE'] = $targetDb;
-    $_SERVER['DB_DATABASE'] = $targetDb;
-    putenv("DB_DATABASE={$targetDb}");
 
     // 3. Fix script/path and HTTPS scheme for Laravel on Vercel
     // vercel-php executes /api/index.php which sets SCRIPT_NAME to /api/index.php,
