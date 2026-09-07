@@ -10,7 +10,15 @@
   },
   "routes": [
     {
-      "src": "/(css|js|images|fonts|static|build)/(.*)",
+      "src": "/livewire/livewire.js",
+      "dest": "/public/vendor/livewire/livewire.js"
+    },
+    {
+      "src": "/livewire/livewire.min.js",
+      "dest": "/public/vendor/livewire/livewire.min.js"
+    },
+    {
+      "src": "/(css|js|images|fonts|static|build|vendor)/(.*)",
       "dest": "/public/$1/$2"
     },
     {
