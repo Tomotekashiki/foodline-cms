@@ -35,8 +35,10 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
     // 2. Setup SQLite database in writable /tmp
     $sourceDb = __DIR__ . '/../database/database.sqlite';
     $targetDb = '/tmp/database.sqlite';
-    if (!file_exists($targetDb) && file_exists($sourceDb)) {
-        copy($sourceDb, $targetDb);
+    if (file_exists($sourceDb)) {
+        if (!file_exists($targetDb) || filesize($targetDb) < 1000) {
+            copy($sourceDb, $targetDb);
+        }
     } elseif (!file_exists($targetDb)) {
         touch($targetDb);
     }

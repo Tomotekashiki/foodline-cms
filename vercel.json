@@ -4,7 +4,8 @@
   "outputDirectory": "public",
   "functions": {
     "api/index.php": {
-      "runtime": "vercel-php@0.8.0"
+      "runtime": "vercel-php@0.8.0",
+      "includeFiles": "database/database.sqlite"
     }
   },
   "routes": [
