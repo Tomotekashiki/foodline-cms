@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('translations', function (Blueprint $table) {
             $table->id();
+            $table->string('group')->index();
+            $table->string('key');
+            $table->text('text')->nullable();
             $table->timestamps();
         });
     }

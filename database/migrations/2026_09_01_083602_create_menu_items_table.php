@@ -6,12 +6,12 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('menu_items', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->text('name');
             $table->text('description')->nullable();
             $table->decimal('price', 8, 2);
-            $table->string('image_url')->nullable();
-            $table->string('category');
-            $table->string('badge')->nullable();
+            $table->text('image_url')->nullable();
+            $table->text('category');
+            $table->text('badge')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

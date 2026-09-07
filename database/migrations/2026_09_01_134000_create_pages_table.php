@@ -7,13 +7,13 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('pages', function (Blueprint $table) {
             $table->id();
-            $table->string('title');
+            $table->text('title');
             $table->string('slug')->unique();
             $table->integer('order')->default(0);
             $table->boolean('is_active')->default(true);
-            $table->string('seo_title')->nullable();
+            $table->text('seo_title')->nullable();
             $table->text('seo_description')->nullable();
-            $table->string('seo_image')->nullable();
+            $table->text('seo_image')->nullable();
             $table->timestamps();
         });
     }

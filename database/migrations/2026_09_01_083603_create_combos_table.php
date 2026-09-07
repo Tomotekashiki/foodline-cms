@@ -6,13 +6,14 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('combos', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->text('name');
             $table->text('description')->nullable();
             $table->integer('min_guests')->default(10);
             $table->decimal('price_per_guest', 8, 2);
-            $table->string('image_url')->nullable();
-            $table->string('badge')->nullable();
+            $table->text('image_url')->nullable();
+            $table->text('badge')->nullable();
             $table->json('inclusions')->nullable();
+            $table->json('menu_item_ids')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
