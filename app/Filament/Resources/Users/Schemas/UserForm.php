@@ -29,7 +29,6 @@ class UserForm
                     ->password()
                     ->revealable()
                     ->dehydrated(fn (?string $state): bool => filled($state))
-                    ->dehydrateStateUsing(fn (string $state): string => Hash::make($state))
                     ->required(fn (string $operation): bool => $operation === 'create')
                     ->maxLength(255),
             ]);
