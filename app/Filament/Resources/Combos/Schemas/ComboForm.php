@@ -64,7 +64,10 @@ class ComboForm
                     ->label('Image')
                     ->disk(env('BLOB_READ_WRITE_TOKEN') ? 'vercel_blob' : 'static_images')
                     ->directory('combos')
-                    ->image(),
+                    ->image()
+                    ->saveUploadedFileUsing(function ($component, $file) {
+                        return \App\Services\Image\ImageOptimizer::optimizeAndStore($component, $file);
+                    }),
                 TextInput::make('badge')
                     ->label('Badge')
                     ->placeholder('e.g. Bestseller, Premium'),

@@ -38,7 +38,10 @@ class MenuItemForm
                 FileUpload::make('image_url')
                     ->disk(env('BLOB_READ_WRITE_TOKEN') ? 'vercel_blob' : 'static_images')
                     ->directory('menu-items')
-                    ->image(),
+                    ->image()
+                    ->saveUploadedFileUsing(function ($component, $file) {
+                        return \App\Services\Image\ImageOptimizer::optimizeAndStore($component, $file);
+                    }),
                 Select::make('category')
                     ->label('Category')
                     ->options(function () {

@@ -48,7 +48,10 @@ class PageForm
                 FileUpload::make('seo_image')
                     ->disk(env('BLOB_READ_WRITE_TOKEN') ? 'vercel_blob' : 'static_images')
                     ->directory('pages')
-                    ->image(),
+                    ->image()
+                    ->saveUploadedFileUsing(function ($component, $file) {
+                        return \App\Services\Image\ImageOptimizer::optimizeAndStore($component, $file);
+                    }),
             ]);
     }
 }
