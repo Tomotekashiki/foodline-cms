@@ -21,7 +21,14 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
         putenv('BCRYPT_ROUNDS=12');
     }
 
-    if (empty($_ENV['APP_URL']) || $_ENV['APP_URL'] === 'http://localhost' || $_ENV['APP_URL'] === 'http://127.0.0.1:8000') {
+    $requestHost = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? $_SERVER['HTTP_HOST'] ?? null;
+    if ($requestHost && !empty($requestHost)) {
+        $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https' ? 'https' : 'https';
+        $currentAppUrl = "{$scheme}://{$requestHost}";
+        $_ENV['APP_URL'] = $currentAppUrl;
+        $_SERVER['APP_URL'] = $currentAppUrl;
+        putenv("APP_URL={$currentAppUrl}");
+    } elseif (empty($_ENV['APP_URL']) || $_ENV['APP_URL'] === 'http://localhost' || $_ENV['APP_URL'] === 'http://127.0.0.1:8000') {
         $_ENV['APP_URL'] = 'https://foodline-cms.vercel.app';
         $_SERVER['APP_URL'] = 'https://foodline-cms.vercel.app';
         putenv('APP_URL=https://foodline-cms.vercel.app');
@@ -82,7 +89,7 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
         putenv("DB_DATABASE={$targetDb}");
     }
 
-    // 3. Fix script/path and HTTPS scheme for Laravel on Vercel
+    // 3. Fix script/path, Host and HTTPS scheme for Laravel on Vercel
     // vercel-php executes /api/index.php which sets SCRIPT_NAME to /api/index.php,
     // causing Laravel's Request::getBaseUrl() to strip /api from /api/menu-items.
     $_SERVER['SCRIPT_NAME'] = '/index.php';
@@ -91,6 +98,11 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
     $_SERVER['SERVER_PORT'] = '443';
     $_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';
     $_SERVER['HTTP_X_FORWARDED_PORT'] = '443';
+
+    if ($requestHost) {
+        $_SERVER['HTTP_HOST'] = $requestHost;
+        $_SERVER['SERVER_NAME'] = explode(':', $requestHost)[0];
+    }
 }
 
 require __DIR__ . '/../public/index.php';

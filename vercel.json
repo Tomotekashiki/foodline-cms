@@ -35,7 +35,6 @@
     }
   ],
   "env": {
-    "APP_URL": "https://foodline-cms.vercel.app",
     "APP_ENV": "production",
     "APP_DEBUG": "true",
     "APP_KEY": "base64:d3Kl4CbkEZRZAJ35rO4KvoLfVDDUta4qe28mmc5DJH8=",
