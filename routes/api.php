@@ -163,4 +163,45 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
             'disabled_dates' => $setting?->disabled_dates ?? [],
         ]);
     });
+
+    Route::get('/internal/upload-page-images', function (Request $request) {
+        if ($request->query('key') !== 'foodline_secret_migrate_2026') {
+            abort(403);
+        }
+
+        $files = [
+            'hero-home.webp',
+            'about-hero.webp',
+            'about-story.webp',
+            'about-chef.webp',
+            'about-coordinator.webp',
+            'about-pastry.webp',
+            'contact-map.webp',
+        ];
+
+        $results = [];
+        foreach ($files as $file) {
+            $srcUrl = "https://foodline.ge/images/{$file}";
+            try {
+                $resp = \Illuminate\Support\Facades\Http::timeout(30)->get($srcUrl);
+                if (!$resp->successful()) {
+                    $results[$file] = "Failed to download from {$srcUrl}: " . $resp->status();
+                    continue;
+                }
+
+                $blobPath = "pages/{$file}";
+                \Illuminate\Support\Facades\Storage::disk('vercel_blob')->put($blobPath, $resp->body(), [
+                    'ContentType' => 'image/webp'
+                ]);
+                $results[$file] = "Uploaded to {$blobPath}";
+            } catch (\Throwable $e) {
+                $results[$file] = "Error: " . $e->getMessage();
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'results' => $results
+        ]);
+    });
 });
