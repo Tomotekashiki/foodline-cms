@@ -46,8 +46,13 @@
     "VIEW_COMPILED_PATH": "/tmp/storage/framework/views",
     "LARAVEL_STORAGE_PATH": "/tmp/storage",
     "CACHE_STORE": "array",
+    "APP_NAME": "Foodline",
+    "SESSION_COOKIE": "foodline_session",
+    "SESSION_LIFETIME": "10080",
     "SESSION_DRIVER": "database",
     "SESSION_CONNECTION": "pgsql_admin",
+    "SESSION_SECURE_COOKIE": "true",
+    "SESSION_SAME_SITE": "lax",
     "FILESYSTEM_DISK": "local",
     "LOG_CHANNEL": "stderr"
   }

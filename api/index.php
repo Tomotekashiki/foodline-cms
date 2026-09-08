@@ -34,6 +34,36 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
         putenv('APP_URL=https://foodline-cms.vercel.app');
     }
 
+    if (empty($_ENV['APP_NAME']) || $_ENV['APP_NAME'] === 'Laravel') {
+        $_ENV['APP_NAME'] = 'Foodline';
+        $_SERVER['APP_NAME'] = 'Foodline';
+        putenv('APP_NAME=Foodline');
+    }
+
+    $_ENV['SESSION_DRIVER'] = 'database';
+    $_SERVER['SESSION_DRIVER'] = 'database';
+    putenv('SESSION_DRIVER=database');
+
+    $_ENV['SESSION_CONNECTION'] = 'pgsql_admin';
+    $_SERVER['SESSION_CONNECTION'] = 'pgsql_admin';
+    putenv('SESSION_CONNECTION=pgsql_admin');
+
+    $_ENV['SESSION_COOKIE'] = 'foodline_session';
+    $_SERVER['SESSION_COOKIE'] = 'foodline_session';
+    putenv('SESSION_COOKIE=foodline_session');
+
+    $_ENV['SESSION_LIFETIME'] = '10080';
+    $_SERVER['SESSION_LIFETIME'] = '10080';
+    putenv('SESSION_LIFETIME=10080');
+
+    $_ENV['SESSION_SECURE_COOKIE'] = 'true';
+    $_SERVER['SESSION_SECURE_COOKIE'] = 'true';
+    putenv('SESSION_SECURE_COOKIE=true');
+
+    $_ENV['SESSION_SAME_SITE'] = 'lax';
+    $_SERVER['SESSION_SAME_SITE'] = 'lax';
+    putenv('SESSION_SAME_SITE=lax');
+
     if (empty($_ENV['FILESYSTEM_DISK'])) {
         $_ENV['FILESYSTEM_DISK'] = 'local';
         $_SERVER['FILESYSTEM_DISK'] = 'local';
