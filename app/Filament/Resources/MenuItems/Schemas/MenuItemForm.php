@@ -58,11 +58,10 @@ class MenuItemForm
                     ->required(),
                 TextInput::make('badge'),
                 Toggle::make('is_furshet')
-                    ->label('ფურშეტის მენიუ')
-                    ->helperText('ჩართეთ, თუ ეს კერძი ეკუთვნის ფურშეტის (Buffet) მენიუს')
+                    ->label('Buffet menu')
                     ->default(false),
                 Toggle::make('is_active')
-                    ->label('აქტიური (Is active)')
+                    ->label('Is active')
                     ->default(true)
                     ->required(),
             ]);

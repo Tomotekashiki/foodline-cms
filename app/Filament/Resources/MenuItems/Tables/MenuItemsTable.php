@@ -28,7 +28,7 @@ class MenuItemsTable
                 TextColumn::make('badge')
                     ->searchable(),
                 IconColumn::make('is_furshet')
-                    ->label('ფურშეტი')
+                    ->label('Buffet menu')
                     ->boolean()
                     ->sortable(),
                 IconColumn::make('is_active')
@@ -44,7 +44,7 @@ class MenuItemsTable
             ])
             ->filters([
                 TernaryFilter::make('is_furshet')
-                    ->label('ფურშეტის მენიუ'),
+                    ->label('Buffet menu'),
             ])
             ->recordActions([
                 EditAction::make(),
