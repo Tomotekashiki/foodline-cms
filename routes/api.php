@@ -60,12 +60,17 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
         return $mapTranslations(\App\Models\Category::where('is_active', true)->orderBy('sort_order')->get());
     });
 
-    Route::get('/menu-items', function () use ($mapTranslations) {
+    Route::get('/menu-items', function (Request $request) use ($mapTranslations) {
         $categories = \App\Models\Category::all()->keyBy(function($c) {
             return $c->getTranslation('name', 'en') ?: $c->slug;
         });
 
-        $items = MenuItem::where('is_active', true)->get()->map(function($item) use ($categories) {
+        $query = MenuItem::where('is_active', true);
+        if ($request->has('furshet')) {
+            $query->where('is_furshet', filter_var($request->query('furshet'), FILTER_VALIDATE_BOOLEAN));
+        }
+
+        $items = $query->get()->map(function($item) use ($categories) {
             if ($cat = ($categories[$item->category] ?? \App\Models\Category::where('slug', $item->category)->first())) {
                 $item->category = $cat->name;
             }

@@ -8,6 +8,7 @@ use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
 class MenuItemsTable
@@ -26,6 +27,10 @@ class MenuItemsTable
                     ->searchable(),
                 TextColumn::make('badge')
                     ->searchable(),
+                IconColumn::make('is_furshet')
+                    ->label('ფურშეტი')
+                    ->boolean()
+                    ->sortable(),
                 IconColumn::make('is_active')
                     ->boolean(),
                 TextColumn::make('created_at')
@@ -38,7 +43,8 @@ class MenuItemsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                TernaryFilter::make('is_furshet')
+                    ->label('ფურშეტის მენიუ'),
             ])
             ->recordActions([
                 EditAction::make(),
