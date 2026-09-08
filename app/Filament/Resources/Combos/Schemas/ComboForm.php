@@ -68,8 +68,11 @@ class ComboForm
                 TextInput::make('badge')
                     ->label('Badge')
                     ->placeholder('e.g. Bestseller, Premium'),
+                Toggle::make('is_furshet')
+                    ->label('Buffet menu')
+                    ->default(false),
                 Toggle::make('is_active')
-                    ->label('Is Active')
+                    ->label('Is active')
                     ->default(true)
                     ->required(),
             ]);

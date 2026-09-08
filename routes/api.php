@@ -80,15 +80,21 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
         return $mapTranslations($items);
     });
 
-    Route::get('/combos', function () use ($formatImageUrl) {
+    Route::get('/combos', function (Request $request) use ($formatImageUrl) {
         $locale = app()->getLocale();
         $allItems = MenuItem::all()->keyBy('id');
 
-        $combos = Combo::where('is_active', true)->get()->map(function($combo) use ($formatImageUrl, $locale, $allItems) {
+        $query = Combo::where('is_active', true);
+        if ($request->has('furshet')) {
+            $query->where('is_furshet', filter_var($request->query('furshet'), FILTER_VALIDATE_BOOLEAN));
+        }
+
+        $combos = $query->get()->map(function($combo) use ($formatImageUrl, $locale, $allItems) {
             $arr = $combo->toArray();
             $arr['name'] = $combo->name;
             $arr['description'] = $combo->description;
             $arr['image_url'] = $formatImageUrl($combo->image_url);
+            $arr['is_furshet'] = (bool) $combo->is_furshet;
 
             // Dynamically resolve inclusions from selected Menu Items
             $itemIds = $combo->menu_item_ids ?? [];

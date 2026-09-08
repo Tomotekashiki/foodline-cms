@@ -10,6 +10,7 @@ class Combo extends Model {
     protected $casts = [
         'inclusions' => 'array',
         'menu_item_ids' => 'array',
+        'is_furshet' => 'boolean',
     ];
 
     public function menuItems() {

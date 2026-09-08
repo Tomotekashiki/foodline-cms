@@ -8,6 +8,7 @@ use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
 class CombosTable
@@ -35,6 +36,10 @@ class CombosTable
                     ->label('Badge')
                     ->badge()
                     ->searchable(),
+                IconColumn::make('is_furshet')
+                    ->label('Buffet menu')
+                    ->boolean()
+                    ->sortable(),
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean(),
@@ -50,7 +55,8 @@ class CombosTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                TernaryFilter::make('is_furshet')
+                    ->label('Buffet menu'),
             ])
             ->recordActions([
                 EditAction::make(),
