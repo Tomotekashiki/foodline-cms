@@ -100,6 +100,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => env('DB_SEARCH_PATH', 'public'),
             'sslmode' => env('DB_SSLMODE', 'require'),
+            'options' => [
+                \PDO::ATTR_EMULATE_PREPARES => true,
+            ],
         ],
 
         'pgsql_admin' => [
@@ -115,6 +118,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => env('DB_SEARCH_PATH', 'public'),
             'sslmode' => env('DB_SSLMODE', 'require'),
+            'options' => [
+                \PDO::ATTR_EMULATE_PREPARES => true,
+            ],
         ],
 
         'sqlsrv' => [
