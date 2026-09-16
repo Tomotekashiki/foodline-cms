@@ -41,7 +41,9 @@ class ImageOptimizer
 
         // If contents couldn't be read or GD is not available, fallback to standard Filament storage
         if (empty($rawContents) || ! extension_loaded('gd') || ! function_exists('imagewebp')) {
-            return $component->saveUploadedFile($file);
+            $saved = $component->saveUploadedFile($file);
+            try { $file->delete(); } catch (\Throwable) {}
+            return $saved;
         }
 
         // SVGs or GIFs with multiple frames: preserve as-is
@@ -60,15 +62,21 @@ class ImageOptimizer
                     $component->getStatePath() => 'The uploaded SVG contains disallowed script or executable elements.',
                 ]);
             }
-            return $component->saveUploadedFile($file);
+            $saved = $component->saveUploadedFile($file);
+            try { $file->delete(); } catch (\Throwable) {}
+            return $saved;
         }
         if ($ext === 'gif') {
-            return $component->saveUploadedFile($file);
+            $saved = $component->saveUploadedFile($file);
+            try { $file->delete(); } catch (\Throwable) {}
+            return $saved;
         }
 
         $image = @imagecreatefromstring($rawContents);
         if (! $image) {
-            return $component->saveUploadedFile($file);
+            $saved = $component->saveUploadedFile($file);
+            try { $file->delete(); } catch (\Throwable) {}
+            return $saved;
         }
 
         // Support alpha channel transparency for PNG / WebP
@@ -123,6 +131,13 @@ class ImageOptimizer
             'visibility' => 'public',
             'ContentType' => 'image/webp',
         ]);
+
+        // Clean up temporary upload from livewire-tmp
+        try {
+            $file->delete();
+        } catch (\Throwable) {
+            // Best effort cleanup
+        }
 
         return $path;
     }
