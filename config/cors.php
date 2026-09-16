@@ -19,9 +19,11 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => array_filter(array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', 'https://foodline.ge,https://admin.foodline.ge,https://foodline-cms.vercel.app,http://localhost:3000,http://127.0.0.1:3000')))),
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '#^https://foodline(-[a-z0-9-]+)?\.vercel\.app$#',
+    ],
 
     'allowed_headers' => ['*'],
 

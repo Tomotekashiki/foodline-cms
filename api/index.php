@@ -21,17 +21,29 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
         putenv('BCRYPT_ROUNDS=12');
     }
 
-    $requestHost = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? $_SERVER['HTTP_HOST'] ?? null;
-    if ($requestHost && !empty($requestHost)) {
+    @header_remove('X-Powered-By');
+
+    $rawHost = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? $_SERVER['HTTP_HOST'] ?? null;
+    $requestHost = null;
+    if ($rawHost && !empty($rawHost)) {
+        $hostName = strtolower(explode(':', $rawHost)[0]);
+        $isAllowed = in_array($hostName, ['admin.foodline.ge', 'foodline.ge', 'foodline-cms.vercel.app', 'localhost', '127.0.0.1'], true)
+            || preg_match('/^[a-z0-9\-]+\.vercel\.app$/', $hostName);
+        if ($isAllowed) {
+            $requestHost = $rawHost;
+        }
+    }
+
+    if ($requestHost) {
         $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https' ? 'https' : 'https';
         $currentAppUrl = "{$scheme}://{$requestHost}";
         $_ENV['APP_URL'] = $currentAppUrl;
         $_SERVER['APP_URL'] = $currentAppUrl;
         putenv("APP_URL={$currentAppUrl}");
     } elseif (empty($_ENV['APP_URL']) || $_ENV['APP_URL'] === 'http://localhost' || $_ENV['APP_URL'] === 'http://127.0.0.1:8000') {
-        $_ENV['APP_URL'] = 'https://foodline-cms.vercel.app';
-        $_SERVER['APP_URL'] = 'https://foodline-cms.vercel.app';
-        putenv('APP_URL=https://foodline-cms.vercel.app');
+        $_ENV['APP_URL'] = 'https://admin.foodline.ge';
+        $_SERVER['APP_URL'] = 'https://admin.foodline.ge';
+        putenv('APP_URL=https://admin.foodline.ge');
     }
 
     if (empty($_ENV['APP_NAME']) || $_ENV['APP_NAME'] === 'Laravel') {

@@ -29,3 +29,5 @@ Thumbs.db
 .vercel
 /.agents
 /skills-lock.json
+/database/*.sqlite
+/database/*.sqlite.base64

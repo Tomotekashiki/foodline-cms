@@ -132,13 +132,13 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
         $disabledDates = $setting?->disabled_dates ?? [];
 
         $validated = $request->validate([
-            'full_name' => 'required|string',
-            'phone' => 'required|string',
-            'email' => 'nullable|email',
+            'full_name' => 'required|string|max:150',
+            'phone' => 'required|string|max:50',
+            'email' => 'nullable|email|max:150',
             'event_date' => 'required|date',
-            'address' => 'required|string',
-            'notes' => 'nullable|string',
-            'order_type' => 'nullable|string',
+            'address' => 'required|string|max:300',
+            'notes' => 'nullable|string|max:2000',
+            'order_type' => 'nullable|string|max:50',
             'order_details' => 'nullable|array',
             'total_estimate' => 'nullable|numeric',
         ]);
@@ -150,7 +150,7 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
 
         $booking = Booking::create($validated);
         return response()->json($booking, 201);
-    });
+    })->middleware('throttle:10,1');
 
     Route::get('/pages', function () use ($mapTranslations) {
         return $mapTranslations(Page::where('is_active', true)->orderBy('order')->get());

@@ -65,8 +65,18 @@ class ComboForm
                     ->disk(env('BLOB_READ_WRITE_TOKEN') ? 'vercel_blob' : 'static_images')
                     ->directory('combos')
                     ->image()
+                    ->imageEditor()
+                    ->imageEditorAspectRatios([
+                        '16:9',
+                        '4:3',
+                        '1:1',
+                    ])
+                    ->imageCropAspectRatio('16:9')
+                    ->imageResizeMode('cover')
+                    ->imageResizeTargetWidth('1000')
+                    ->imageResizeTargetHeight('562')
                     ->saveUploadedFileUsing(function ($component, $file) {
-                        return \App\Services\Image\ImageOptimizer::optimizeAndStore($component, $file);
+                        return \App\Services\Image\ImageOptimizer::optimizeAndStore($component, $file, maxDimension: 1000, quality: 80);
                     }),
                 TextInput::make('badge')
                     ->label('Badge')

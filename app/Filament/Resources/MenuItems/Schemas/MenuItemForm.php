@@ -36,11 +36,22 @@ class MenuItemForm
                     ->numeric()
                     ->prefix('$'),
                 FileUpload::make('image_url')
+                    ->label('Image')
                     ->disk(env('BLOB_READ_WRITE_TOKEN') ? 'vercel_blob' : 'static_images')
                     ->directory('menu-items')
                     ->image()
+                    ->imageEditor()
+                    ->imageEditorAspectRatios([
+                        '16:9',
+                        '4:3',
+                        '1:1',
+                    ])
+                    ->imageCropAspectRatio('16:9')
+                    ->imageResizeMode('cover')
+                    ->imageResizeTargetWidth('800')
+                    ->imageResizeTargetHeight('450')
                     ->saveUploadedFileUsing(function ($component, $file) {
-                        return \App\Services\Image\ImageOptimizer::optimizeAndStore($component, $file);
+                        return \App\Services\Image\ImageOptimizer::optimizeAndStore($component, $file, maxDimension: 800, quality: 80);
                     }),
                 Select::make('category')
                     ->label('Category')

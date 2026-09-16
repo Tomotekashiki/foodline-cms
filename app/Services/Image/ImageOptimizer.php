@@ -14,8 +14,8 @@ class ImageOptimizer
     public static function optimizeAndStore(
         BaseFileUpload $component,
         TemporaryUploadedFile $file,
-        int $maxDimension = 1920,
-        int $quality = 82
+        int $maxDimension = 1200,
+        int $quality = 80
     ): ?string {
         try {
             if (! $file->exists()) {
@@ -46,7 +46,23 @@ class ImageOptimizer
 
         // SVGs or GIFs with multiple frames: preserve as-is
         $ext = strtolower(pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION));
-        if ($ext === 'svg' || $ext === 'gif') {
+        if ($ext === 'svg') {
+            // Validate SVG against embedded scripts and stored XSS vectors
+            if (
+                preg_match('/<\s*script/i', $rawContents) ||
+                preg_match('/on[a-z]+\s*=/i', $rawContents) ||
+                preg_match('/javascript\s*:/i', $rawContents) ||
+                preg_match('/data\s*:\s*text\/html/i', $rawContents) ||
+                preg_match('/<\s*iframe/i', $rawContents) ||
+                preg_match('/<\s*object/i', $rawContents)
+            ) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    $component->getStatePath() => 'The uploaded SVG contains disallowed script or executable elements.',
+                ]);
+            }
+            return $component->saveUploadedFile($file);
+        }
+        if ($ext === 'gif') {
             return $component->saveUploadedFile($file);
         }
 
