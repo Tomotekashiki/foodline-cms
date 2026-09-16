@@ -163,4 +163,160 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
             'disabled_dates' => $setting?->disabled_dates ?? [],
         ]);
     });
+
+    Route::get('/internal/optimize-images', function (\Illuminate\Http\Request $request) {
+        if ($request->query('key') !== 'foodline_secret_optimize_2026') {
+            abort(403, 'Unauthorized');
+        }
+
+        $type = $request->query('type', 'menu_items');
+        $limit = min(max((int) $request->query('limit', 10), 1), 20);
+        $offset = max((int) $request->query('offset', 0), 0);
+
+        $targetWidth = ($type === 'combos') ? 1000 : 800;
+        $targetHeight = ($type === 'combos') ? 562 : 450;
+        $targetRatio = 16 / 9;
+
+        if ($type === 'combos') {
+            $query = \App\Models\Combo::whereNotNull('image_url')->where('image_url', '!=', '');
+        } else {
+            $query = \App\Models\MenuItem::whereNotNull('image_url')->where('image_url', '!=', '');
+        }
+
+        $total = $query->count();
+        $items = $query->orderBy('id')->skip($offset)->take($limit)->get();
+
+        $results = [];
+        $storage = \Illuminate\Support\Facades\Storage::disk(env('BLOB_READ_WRITE_TOKEN') ? 'vercel_blob' : 'static_images');
+
+        foreach ($items as $item) {
+            $path = $item->image_url;
+            if (empty($path)) continue;
+
+            $cleanPath = preg_replace('#^https?://[^/]+/#', '', $path);
+            $cleanPath = ltrim($cleanPath, '/');
+
+            try {
+                $url = $storage->url($cleanPath);
+                $resp = \Illuminate\Support\Facades\Http::timeout(25)->get($url);
+                if (!$resp->successful()) {
+                    $results[] = [
+                        'id' => $item->id,
+                        'path' => $cleanPath,
+                        'status' => 'download_failed',
+                        'http_status' => $resp->status(),
+                    ];
+                    continue;
+                }
+
+                $rawContents = $resp->body();
+                $originalSize = strlen($rawContents);
+
+                $im = @imagecreatefromstring($rawContents);
+                if (!$im) {
+                    $results[] = [
+                        'id' => $item->id,
+                        'path' => $cleanPath,
+                        'status' => 'image_create_failed',
+                    ];
+                    continue;
+                }
+
+                imagepalettetotruecolor($im);
+                imagealphablending($im, true);
+                imagesavealpha($im, true);
+
+                $w = imagesx($im);
+                $h = imagesy($im);
+                $currentRatio = $w / $h;
+
+                if ($w <= $targetWidth && abs($currentRatio - $targetRatio) < 0.05 && $originalSize < 75000 && str_ends_with(strtolower($cleanPath), '.webp')) {
+                    imagedestroy($im);
+                    $results[] = [
+                        'id' => $item->id,
+                        'path' => $cleanPath,
+                        'status' => 'already_optimized',
+                        'dimensions' => "{$w}x{$h}",
+                        'size' => round($originalSize / 1024, 1) . 'KB',
+                    ];
+                    continue;
+                }
+
+                if ($currentRatio > $targetRatio) {
+                    $cropH = $h;
+                    $cropW = (int) round($h * $targetRatio);
+                    $cropX = (int) round(($w - $cropW) / 2);
+                    $cropY = 0;
+                } else {
+                    $cropW = $w;
+                    $cropH = (int) round($w / $targetRatio);
+                    $cropX = 0;
+                    $cropY = (int) round(($h - $cropH) / 2);
+                }
+
+                $newW = min($targetWidth, $cropW);
+                $newH = (int) round($newW / $targetRatio);
+
+                $dest = imagecreatetruecolor($newW, $newH);
+                imagealphablending($dest, false);
+                imagesavealpha($dest, true);
+
+                imagecopyresampled(
+                    $dest, $im,
+                    0, 0,
+                    $cropX, $cropY,
+                    $newW, $newH,
+                    $cropW, $cropH
+                );
+                imagedestroy($im);
+
+                ob_start();
+                imagewebp($dest, null, 80);
+                $webpData = ob_get_clean();
+                imagedestroy($dest);
+
+                $newSize = strlen($webpData);
+
+                $destPath = preg_replace('/\.[^.]+$/', '.webp', $cleanPath);
+
+                $storage->put($destPath, $webpData, [
+                    'visibility' => 'public',
+                    'ContentType' => 'image/webp',
+                ]);
+
+                if ($destPath !== $item->image_url) {
+                    $item->update(['image_url' => $destPath]);
+                }
+
+                $results[] = [
+                    'id' => $item->id,
+                    'path' => $destPath,
+                    'status' => 'optimized',
+                    'old_dimensions' => "{$w}x{$h}",
+                    'new_dimensions' => "{$newW}x{$newH}",
+                    'old_size' => round($originalSize / 1024, 1) . 'KB',
+                    'new_size' => round($newSize / 1024, 1) . 'KB',
+                    'savings' => round((1 - $newSize / $originalSize) * 100) . '%',
+                ];
+            } catch (\Throwable $e) {
+                $results[] = [
+                    'id' => $item->id,
+                    'path' => $cleanPath,
+                    'status' => 'error',
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        $nextOffset = ($offset + $limit < $total) ? ($offset + $limit) : null;
+
+        return response()->json([
+            'type' => $type,
+            'total' => $total,
+            'processed_count' => count($results),
+            'offset' => $offset,
+            'next_offset' => $nextOffset,
+            'results' => $results,
+        ]);
+    });
 });
