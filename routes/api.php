@@ -141,15 +141,66 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
             'order_type' => 'nullable|string|max:50',
             'order_details' => 'nullable|array',
             'total_estimate' => 'nullable|numeric',
+            'recaptcha_token' => 'nullable|string',
         ]);
+
+        if (!empty($validated['recaptcha_token'])) {
+            $secretKey = env('RECAPTCHA_SECRET_KEY', '6Lc24sEtAAAAAEXxA_FKTBOOIrhOLqG1AQRRT493');
+            try {
+                $verifyRes = \Illuminate\Support\Facades\Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                    'secret' => $secretKey,
+                    'response' => $validated['recaptcha_token'],
+                    'remoteip' => $request->ip(),
+                ]);
+                if (!$verifyRes->json('success')) {
+                    return response()->json(['message' => 'reCAPTCHA შემოწმება ვერ მოხერხდა. გთხოვთ სცადოთ თავიდან.'], 422);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('reCAPTCHA siteverify error: ' . $e->getMessage());
+            }
+        }
 
         $dateOnly = substr($validated['event_date'], 0, 10);
         if (in_array($dateOnly, $disabledDates)) {
             return response()->json(['message' => 'The selected date is unavailable for booking.'], 422);
         }
 
+        unset($validated['recaptcha_token']);
         $booking = Booking::create($validated);
         return response()->json($booking, 201);
+    })->middleware('throttle:10,1');
+
+    Route::post('/contact', function (Request $request) {
+        $validated = $request->validate([
+            'name' => 'required|string|max:150',
+            'email' => 'required|email|max:150',
+            'subject' => 'nullable|string|max:200',
+            'message' => 'required|string|max:5000',
+            'recaptcha_token' => 'nullable|string',
+        ]);
+
+        if (!empty($validated['recaptcha_token'])) {
+            $secretKey = env('RECAPTCHA_SECRET_KEY', '6Lc24sEtAAAAAEXxA_FKTBOOIrhOLqG1AQRRT493');
+            try {
+                $verifyRes = \Illuminate\Support\Facades\Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                    'secret' => $secretKey,
+                    'response' => $validated['recaptcha_token'],
+                    'remoteip' => $request->ip(),
+                ]);
+                if (!$verifyRes->json('success')) {
+                    return response()->json(['message' => 'reCAPTCHA შემოწმება ვერ მოხერხდა. გთხოვთ სცადოთ თავიდან.'], 422);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('reCAPTCHA siteverify error: ' . $e->getMessage());
+            }
+        }
+
+        \Illuminate\Support\Facades\Log::info('New contact form submission: ' . json_encode($validated));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'შეტყობინება წარმატებით გაიგზავნა'
+        ], 200);
     })->middleware('throttle:10,1');
 
     Route::get('/pages', function () use ($mapTranslations) {
