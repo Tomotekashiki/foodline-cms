@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\App;
 use App\Models\MenuItem;
 use App\Models\Combo;
 use App\Models\Booking;
+use App\Models\ContactMessage;
 use App\Models\Page;
 
 Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
@@ -195,11 +196,18 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
             }
         }
 
+        unset($validated['recaptcha_token']);
+        $validated['status'] = 'new';
+        $validated['ip_address'] = $request->ip();
+
+        $contactMessage = ContactMessage::create($validated);
+
         \Illuminate\Support\Facades\Log::info('New contact form submission: ' . json_encode($validated));
 
         return response()->json([
             'success' => true,
-            'message' => 'შეტყობინება წარმატებით გაიგზავნა'
+            'message' => 'შეტყობინება წარმატებით გაიგზავნა',
+            'data' => $contactMessage
         ], 200);
     })->middleware('throttle:10,1');
 

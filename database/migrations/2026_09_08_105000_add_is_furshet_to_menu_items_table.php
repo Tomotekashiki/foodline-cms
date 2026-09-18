@@ -8,9 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('menu_items', function (Blueprint $table) {
-            $table->boolean('is_furshet')->default(false)->after('badge');
-        });
+        if (!Schema::hasColumn('menu_items', 'is_furshet')) {
+            Schema::table('menu_items', function (Blueprint $table) {
+                $table->boolean('is_furshet')->default(false)->after('badge');
+            });
+        }
     }
 
     public function down(): void

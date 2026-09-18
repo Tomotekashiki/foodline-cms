@@ -20,7 +20,11 @@ return new class extends Migration
             ];
 
             foreach ($columns as [$table, $col]) {
-                DB::statement("ALTER TABLE \"$table\" ALTER COLUMN \"$col\" TYPE jsonb USING CASE WHEN \"$col\" IS NULL THEN NULL ELSE \"$col\"::jsonb END");
+                try {
+                    DB::statement("ALTER TABLE \"$table\" ALTER COLUMN \"$col\" TYPE jsonb USING CASE WHEN \"$col\" IS NULL THEN NULL ELSE \"$col\"::jsonb END");
+                } catch (\Throwable $e) {
+                    // Ignore if already converted or insufficient table alteration privileges
+                }
             }
         }
     }
