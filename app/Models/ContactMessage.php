@@ -6,7 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class ContactMessage extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'name',
+        'email',
+        'phone',
+        'subject',
+        'message',
+        'status',
+        'ip_address',
+    ];
 
     protected $casts = [
         'created_at' => 'datetime',
