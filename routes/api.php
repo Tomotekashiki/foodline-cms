@@ -1,34 +1,44 @@
 <?php
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\App;
-use App\Models\MenuItem;
-use App\Models\Combo;
-use App\Models\Booking;
-use App\Models\ContactMessage;
-use App\Models\Page;
 
-Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
+use App\Http\Middleware\SetLocale;
+use App\Models\Booking;
+use App\Models\Category;
+use App\Models\Combo;
+use App\Models\ContactMessage;
+use App\Models\MenuItem;
+use App\Models\Page;
+use App\Models\Setting;
+use App\Models\Translation;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+
+Route::middleware(SetLocale::class)->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     })->middleware('auth:sanctum');
 
-    $formatImageUrl = function($image) {
-        if (!$image) return null;
+    $formatImageUrl = function ($image) {
+        if (! $image) {
+            return null;
+        }
         if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://') || str_starts_with($image, '//')) {
             return preg_replace('/^https:\/\/store_([a-zA-Z0-9]+)\.public\.blob\.vercel-storage\.com\//', 'https://$1.public.blob.vercel-storage.com/', $image);
         }
         if (env('BLOB_READ_WRITE_TOKEN')) {
-            return \Illuminate\Support\Facades\Storage::disk('vercel_blob')->url($image);
+            return Storage::disk('vercel_blob')->url($image);
         }
-        return rtrim(env('APP_URL', 'http://127.0.0.1:8000'), '/') . '/static/image/' . ltrim($image, '/');
+
+        return rtrim(env('APP_URL', 'http://127.0.0.1:8000'), '/').'/static/image/'.ltrim($image, '/');
     };
 
-    $mapTranslations = function($items) use ($formatImageUrl) {
-        return $items->map(function($model) use ($formatImageUrl) {
+    $mapTranslations = function ($items) use ($formatImageUrl) {
+        return $items->map(function ($model) use ($formatImageUrl) {
             $arr = $model->toArray();
             if (isset($model->translatable)) {
-                foreach($model->translatable as $field) {
+                foreach ($model->translatable as $field) {
                     $arr[$field] = $model->{$field};
                 }
             }
@@ -38,12 +48,26 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
             if (isset($arr['seo_image'])) {
                 $arr['seo_image'] = $formatImageUrl($arr['seo_image']);
             }
+
             return $arr;
         });
     };
 
     Route::get('/translations', function () {
-        $translations = \App\Models\Translation::all();
+        $badge = Translation::where('key', 'menu_step2_badge')->first();
+        if ($badge && $badge->getTranslation('text', 'ka') === 'ნაბიჯი 2 / 3') {
+            try {
+                $badge->text = [
+                    'ka' => 'ნაბიჯი 2 / 4',
+                    'en' => 'Step 2 of 4',
+                    'ru' => 'Шаг 2 из 4',
+                ];
+                $badge->save();
+            } catch (Throwable $e) {
+            }
+        }
+
+        $translations = Translation::all();
         $result = [
             'ka' => [],
             'en' => [],
@@ -54,15 +78,22 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
             $result['en'][$t->key] = $t->getTranslation('text', 'en');
             $result['ru'][$t->key] = $t->getTranslation('text', 'ru');
         }
+
+        if (isset($result['ka']['menu_step2_badge']) && str_contains($result['ka']['menu_step2_badge'], '2 / 3')) {
+            $result['ka']['menu_step2_badge'] = 'ნაბიჯი 2 / 4';
+            $result['en']['menu_step2_badge'] = 'Step 2 of 4';
+            $result['ru']['menu_step2_badge'] = 'Шаг 2 из 4';
+        }
+
         return $result;
     });
 
     Route::get('/categories', function () use ($mapTranslations) {
-        return $mapTranslations(\App\Models\Category::where('is_active', true)->orderBy('sort_order')->get());
+        return $mapTranslations(Category::where('is_active', true)->orderBy('sort_order')->get());
     });
 
     Route::get('/menu-items', function (Request $request) use ($mapTranslations) {
-        $categories = \App\Models\Category::all()->keyBy(function($c) {
+        $categories = Category::all()->keyBy(function ($c) {
             return $c->getTranslation('name', 'en') ?: $c->slug;
         });
 
@@ -71,10 +102,11 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
             $query->where('is_furshet', filter_var($request->query('furshet'), FILTER_VALIDATE_BOOLEAN));
         }
 
-        $items = $query->get()->map(function($item) use ($categories) {
-            if ($cat = ($categories[$item->category] ?? \App\Models\Category::where('slug', $item->category)->first())) {
+        $items = $query->get()->map(function ($item) use ($categories) {
+            if ($cat = ($categories[$item->category] ?? Category::where('slug', $item->category)->first())) {
                 $item->category = $cat->name;
             }
+
             return $item;
         });
 
@@ -90,7 +122,7 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
             $query->where('is_furshet', filter_var($request->query('furshet'), FILTER_VALIDATE_BOOLEAN));
         }
 
-        $combos = $query->get()->map(function($combo) use ($formatImageUrl, $locale, $allItems) {
+        $combos = $query->get()->map(function ($combo) use ($formatImageUrl, $locale, $allItems) {
             $arr = $combo->toArray();
             $arr['name'] = $combo->name;
             $arr['description'] = $combo->description;
@@ -99,7 +131,7 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
 
             // Dynamically resolve inclusions from selected Menu Items
             $itemIds = $combo->menu_item_ids ?? [];
-            if (!empty($itemIds) && is_array($itemIds)) {
+            if (! empty($itemIds) && is_array($itemIds)) {
                 $inclusions = [];
                 $includedItems = [];
                 foreach ($itemIds as $id) {
@@ -133,24 +165,27 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
         }
         $secretKey = config('services.recaptcha.secret', env('RECAPTCHA_SECRET_KEY'));
         if (empty($secretKey)) {
-            \Illuminate\Support\Facades\Log::warning('RECAPTCHA_SECRET_KEY not configured.');
+            Log::warning('RECAPTCHA_SECRET_KEY not configured.');
+
             return false;
         }
         try {
-            $verifyRes = \Illuminate\Support\Facades\Http::asForm()->timeout(5)->post('https://www.google.com/recaptcha/api/siteverify', [
+            $verifyRes = Http::asForm()->timeout(5)->post('https://www.google.com/recaptcha/api/siteverify', [
                 'secret' => $secretKey,
                 'response' => $token,
                 'remoteip' => $ip,
             ]);
+
             return (bool) $verifyRes->json('success');
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('reCAPTCHA siteverify error: ' . $e->getMessage());
+        } catch (Throwable $e) {
+            Log::warning('reCAPTCHA siteverify error: '.$e->getMessage());
+
             return false;
         }
     };
 
     Route::post('/bookings', function (Request $request) use ($verifyRecaptcha) {
-        $setting = \App\Models\Setting::first();
+        $setting = Setting::first();
         $minDays = (int) ($setting?->min_booking_days_ahead ?? 1);
         $disabledDates = $setting?->disabled_dates ?? [];
 
@@ -170,8 +205,8 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
             'recaptcha_token' => $recaptchaRule,
         ]);
 
-        if ($isProduction || !empty($validated['recaptcha_token'])) {
-            if (!$verifyRecaptcha($validated['recaptcha_token'] ?? null, $request->ip())) {
+        if ($isProduction || ! empty($validated['recaptcha_token'])) {
+            if (! $verifyRecaptcha($validated['recaptcha_token'] ?? null, $request->ip())) {
                 return response()->json(['message' => 'reCAPTCHA შემოწმება ვერ მოხერხდა. გთხოვთ სცადოთ თავიდან.'], 422);
             }
         }
@@ -183,6 +218,7 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
 
         unset($validated['recaptcha_token']);
         $booking = Booking::create($validated);
+
         return response()->json($booking, 201);
     })->middleware('throttle:10,1');
 
@@ -198,8 +234,8 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
             'recaptcha_token' => $recaptchaRule,
         ]);
 
-        if ($isProduction || !empty($validated['recaptcha_token'])) {
-            if (!$verifyRecaptcha($validated['recaptcha_token'] ?? null, $request->ip())) {
+        if ($isProduction || ! empty($validated['recaptcha_token'])) {
+            if (! $verifyRecaptcha($validated['recaptcha_token'] ?? null, $request->ip())) {
                 return response()->json(['message' => 'reCAPTCHA შემოწმება ვერ მოხერხდა. გთხოვთ სცადოთ თავიდან.'], 422);
             }
         }
@@ -210,11 +246,11 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
 
         ContactMessage::create($validated);
 
-        \Illuminate\Support\Facades\Log::info('New contact form submission: ' . json_encode($validated));
+        Log::info('New contact form submission: '.json_encode($validated));
 
         return response()->json([
             'success' => true,
-            'message' => 'შეტყობინება წარმატებით გაიგზავნა'
+            'message' => 'შეტყობინება წარმატებით გაიგზავნა',
         ], 200);
     })->middleware('throttle:10,1');
 
@@ -223,7 +259,8 @@ Route::middleware(\App\Http\Middleware\SetLocale::class)->group(function () {
     });
 
     Route::get('/settings', function () {
-        $setting = \App\Models\Setting::first();
+        $setting = Setting::first();
+
         return response()->json([
             'min_booking_days_ahead' => (int) ($setting?->min_booking_days_ahead ?? 1),
             'disabled_dates' => $setting?->disabled_dates ?? [],
