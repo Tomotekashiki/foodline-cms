@@ -85,32 +85,50 @@ Route::middleware(SetLocale::class)->group(function () {
             $result['ru']['menu_step2_badge'] = 'Шаг 2 из 4';
         }
 
-        return $result;
+        return response()->json($result)
+            ->header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     });
 
     Route::get('/categories', function () use ($mapTranslations) {
-        return $mapTranslations(Category::where('is_active', true)->orderBy('sort_order')->get());
+        return response()->json($mapTranslations(Category::where('is_active', true)->orderBy('sort_order')->get()))
+            ->header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     });
 
     Route::get('/menu-items', function (Request $request) use ($mapTranslations) {
-        $categories = Category::all()->keyBy(function ($c) {
-            return $c->getTranslation('name', 'en') ?: $c->slug;
-        });
+        $allCategories = Category::all();
+        $categoriesMap = [];
+        foreach ($allCategories as $c) {
+            $name = $c->name;
+            $slug = $c->slug;
+            $enName = $c->getTranslation('name', 'en');
+            $kaName = $c->getTranslation('name', 'ka');
+            if ($slug) {
+                $categoriesMap[$slug] = $name;
+            }
+            if ($enName) {
+                $categoriesMap[$enName] = $name;
+            }
+            if ($kaName) {
+                $categoriesMap[$kaName] = $name;
+            }
+            $categoriesMap[$c->id] = $name;
+        }
 
         $query = MenuItem::where('is_active', true);
         if ($request->has('furshet')) {
             $query->where('is_furshet', filter_var($request->query('furshet'), FILTER_VALIDATE_BOOLEAN));
         }
 
-        $items = $query->get()->map(function ($item) use ($categories) {
-            if ($cat = ($categories[$item->category] ?? Category::where('slug', $item->category)->first())) {
-                $item->category = $cat->name;
+        $items = $query->get()->map(function ($item) use ($categoriesMap) {
+            if (isset($categoriesMap[$item->category])) {
+                $item->category = $categoriesMap[$item->category];
             }
 
             return $item;
         });
 
-        return $mapTranslations($items);
+        return response()->json($mapTranslations($items))
+            ->header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     });
 
     Route::get('/combos', function (Request $request) use ($formatImageUrl) {
@@ -156,7 +174,8 @@ Route::middleware(SetLocale::class)->group(function () {
             return $arr;
         });
 
-        return response()->json($combos);
+        return response()->json($combos)
+            ->header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     });
 
     $verifyRecaptcha = function (?string $token, string $ip): bool {
@@ -255,7 +274,8 @@ Route::middleware(SetLocale::class)->group(function () {
     })->middleware('throttle:10,1');
 
     Route::get('/pages', function () use ($mapTranslations) {
-        return $mapTranslations(Page::where('is_active', true)->orderBy('order')->get());
+        return response()->json($mapTranslations(Page::where('is_active', true)->orderBy('order')->get()))
+            ->header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     });
 
     Route::get('/settings', function () {
@@ -264,6 +284,6 @@ Route::middleware(SetLocale::class)->group(function () {
         return response()->json([
             'min_booking_days_ahead' => (int) ($setting?->min_booking_days_ahead ?? 1),
             'disabled_dates' => $setting?->disabled_dates ?? [],
-        ]);
+        ])->header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     });
 });
