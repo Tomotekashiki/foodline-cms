@@ -205,8 +205,9 @@ Route::middleware(SetLocale::class)->group(function () {
 
     Route::post('/bookings', function (Request $request) use ($verifyRecaptcha) {
         $setting = Setting::first();
-        $minDays = (int) ($setting?->min_booking_days_ahead ?? 1);
+        $minDays = max(0, (int) ($setting?->min_booking_days_ahead ?? 1));
         $disabledDates = $setting?->disabled_dates ?? [];
+        $earliestDate = now('Asia/Tbilisi')->startOfDay()->addDays($minDays)->toDateString();
 
         $isProduction = app()->isProduction() || env('VERCEL') || env('APP_ENV') === 'production';
         $recaptchaRule = $isProduction ? 'required|string' : 'nullable|string';
@@ -215,12 +216,16 @@ Route::middleware(SetLocale::class)->group(function () {
             'full_name' => 'required|string|max:150',
             'phone' => 'required|string|max:50',
             'email' => 'nullable|email|max:150',
-            'event_date' => 'required|date',
+            'event_date' => 'required|date|after_or_equal:'.$earliestDate,
             'address' => 'required|string|max:300',
             'notes' => 'nullable|string|max:2000',
-            'order_type' => 'nullable|string|max:50',
-            'order_details' => 'nullable|array',
-            'total_estimate' => 'nullable|numeric',
+            'order_details' => 'required|array',
+            'order_details.custom_items' => 'nullable|array|max:200',
+            'order_details.custom_items.*.id' => 'required|integer',
+            'order_details.custom_items.*.qty' => 'required|integer|min:1|max:10000',
+            'order_details.combos' => 'nullable|array|max:50',
+            'order_details.combos.*.id' => 'required|integer',
+            'order_details.combos.*.qty' => 'required|integer|min:1|max:10000',
             'recaptcha_token' => $recaptchaRule,
         ]);
 
@@ -235,10 +240,70 @@ Route::middleware(SetLocale::class)->group(function () {
             return response()->json(['message' => 'The selected date is unavailable for booking.'], 422);
         }
 
-        unset($validated['recaptcha_token']);
-        $booking = Booking::create($validated);
+        // Rebuild order lines from the database so names and prices cannot be forged by the client.
+        $requestedItems = collect($validated['order_details']['custom_items'] ?? [])
+            ->groupBy('id')->map(fn ($rows) => (int) $rows->sum('qty'));
+        $requestedCombos = collect($validated['order_details']['combos'] ?? [])
+            ->groupBy('id')->map(fn ($rows) => (int) $rows->sum('qty'));
 
-        return response()->json($booking, 201);
+        $menuItems = MenuItem::where('is_active', true)->whereIn('id', $requestedItems->keys())->get()->keyBy('id');
+        $combos = Combo::where('is_active', true)->whereIn('id', $requestedCombos->keys())->get()->keyBy('id');
+
+        if ($menuItems->count() !== $requestedItems->count() || $combos->count() !== $requestedCombos->count()) {
+            return response()->json(['message' => 'One or more selected items are no longer available.'], 422);
+        }
+        if ($requestedItems->isEmpty() && $requestedCombos->isEmpty()) {
+            return response()->json(['message' => 'No items selected.'], 422);
+        }
+
+        $customLines = $requestedItems->map(function (int $qty, $id) use ($menuItems) {
+            $item = $menuItems[$id];
+
+            return [
+                'id' => $item->id,
+                'name' => $item->name,
+                'price' => (float) $item->price,
+                'qty' => $qty,
+                'category' => $item->category?->name ?? null,
+            ];
+        })->values()->all();
+
+        $comboLines = $requestedCombos->map(function (int $qty, $id) use ($combos) {
+            $combo = $combos[$id];
+
+            return [
+                'id' => $combo->id,
+                'name' => $combo->name,
+                'price' => (float) $combo->price_per_guest,
+                'qty' => $qty,
+                'for_guests' => (int) $combo->min_guests,
+            ];
+        })->values()->all();
+
+        $total = collect($customLines)->sum(fn ($l) => $l['price'] * $l['qty'])
+            + collect($comboLines)->sum(fn ($l) => $l['price'] * $l['qty']);
+
+        $booking = Booking::create([
+            'full_name' => $validated['full_name'],
+            'phone' => $validated['phone'],
+            'email' => $validated['email'] ?? null,
+            'event_date' => $validated['event_date'],
+            'address' => $validated['address'],
+            'notes' => $validated['notes'] ?? null,
+            'order_type' => $customLines && $comboLines ? 'mixed' : ($comboLines ? 'combo' : 'custom'),
+            'order_details' => [
+                'custom_items' => $customLines,
+                'combos' => $comboLines,
+                'combo' => $comboLines[0] ?? null,
+            ],
+            'total_estimate' => round($total, 2),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'id' => $booking->id,
+            'total_estimate' => $booking->total_estimate,
+        ], 201);
     })->middleware('throttle:10,1');
 
     Route::post('/contact', function (Request $request) use ($verifyRecaptcha) {
@@ -263,9 +328,9 @@ Route::middleware(SetLocale::class)->group(function () {
         $validated['status'] = 'new';
         $validated['ip_address'] = $request->ip();
 
-        ContactMessage::create($validated);
+        $message = ContactMessage::create($validated);
 
-        Log::info('New contact form submission: '.json_encode($validated));
+        Log::info('New contact form submission ID: '.$message->id);
 
         return response()->json([
             'success' => true,
