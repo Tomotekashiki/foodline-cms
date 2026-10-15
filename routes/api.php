@@ -351,4 +351,36 @@ Route::middleware(SetLocale::class)->group(function () {
             'disabled_dates' => $setting?->disabled_dates ?? [],
         ])->header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     });
+
+    Route::match(['get', 'post'], '/cron/clean-tmp', function (Request $request) {
+        $cronSecret = env('CRON_SECRET');
+        $authHeader = $request->header('Authorization');
+
+        // Check Vercel Cron header or CRON_SECRET token if configured
+        if (! empty($cronSecret)) {
+            $isAuthorized = ($authHeader === "Bearer {$cronSecret}")
+                || ($request->query('key') === $cronSecret);
+
+            if (! $isAuthorized) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+        }
+
+        $hours = (int) $request->input('hours', 2);
+        $cutoff = now()->subHours($hours)->timestamp;
+
+        $token = env('BLOB_READ_WRITE_TOKEN');
+        $deletedBlobs = [];
+        if (! empty($token)) {
+            $deletedBlobs = \App\Console\Commands\CleanStorageTemp::cleanVercelBlobWithDetails($token, $cutoff);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Temporary storage cleanup finished',
+            'cutoff' => date('Y-m-d H:i:s', $cutoff),
+            'deleted_vercel_blobs' => count($deletedBlobs),
+            'urls' => $deletedBlobs,
+        ]);
+    });
 });
