@@ -19,6 +19,8 @@ class CombosTable
             ->columns([
                 ImageColumn::make('image_url')
                     ->label('Image')
+                    ->disk(env('BLOB_READ_WRITE_TOKEN') ? 'vercel_blob' : 'static_images')
+                    ->checkFileExistence(false)
                     ->circular(),
                 TextColumn::make('name')
                     ->label('Name')

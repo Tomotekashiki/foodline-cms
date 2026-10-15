@@ -22,7 +22,10 @@ class MenuItemsTable
                 TextColumn::make('price')
                     ->money()
                     ->sortable(),
-                ImageColumn::make('image_url'),
+                ImageColumn::make('image_url')
+                    ->label('Image')
+                    ->disk(env('BLOB_READ_WRITE_TOKEN') ? 'vercel_blob' : 'static_images')
+                    ->checkFileExistence(false),
                 TextColumn::make('category')
                     ->searchable(),
                 TextColumn::make('badge')

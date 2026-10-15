@@ -27,7 +27,9 @@ class PagesTable
                     ->boolean(),
                 TextColumn::make('seo_title')
                     ->searchable(),
-                ImageColumn::make('seo_image'),
+                ImageColumn::make('seo_image')
+                    ->disk(env('BLOB_READ_WRITE_TOKEN') ? 'vercel_blob' : 'static_images')
+                    ->checkFileExistence(false),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
