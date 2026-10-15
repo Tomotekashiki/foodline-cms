@@ -37,15 +37,16 @@ class ComboForm
                     ->multiple()
                     ->searchable()
                     ->preload()
+                    ->optionsLimit(500)
                     ->options(function () {
-                        return \App\Models\MenuItem::where('is_active', true)
-                            ->get()
+                        return \App\Models\MenuItem::all()
                             ->mapWithKeys(function ($item) {
                                 $ka = $item->getTranslation('name', 'ka');
                                 $en = $item->getTranslation('name', 'en');
                                 $label = $en && $en !== $ka ? "{$ka} ({$en})" : $ka;
-                                return [$item->id => $label];
-                            });
+                                return [(string) $item->id => $label];
+                            })
+                            ->toArray();
                     })
                     ->columnSpanFull(),
                 
@@ -71,10 +72,6 @@ class ComboForm
                         '4:3',
                         '1:1',
                     ])
-                    ->imageCropAspectRatio('16:9')
-                    ->imageResizeMode('cover')
-                    ->imageResizeTargetWidth('1000')
-                    ->imageResizeTargetHeight('562')
                     ->saveUploadedFileUsing(function ($component, $file) {
                         return \App\Services\Image\ImageOptimizer::optimizeAndStore($component, $file, maxDimension: 1000, quality: 80);
                     }),

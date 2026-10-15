@@ -46,10 +46,6 @@ class MenuItemForm
                         '4:3',
                         '1:1',
                     ])
-                    ->imageCropAspectRatio('16:9')
-                    ->imageResizeMode('cover')
-                    ->imageResizeTargetWidth('800')
-                    ->imageResizeTargetHeight('450')
                     ->saveUploadedFileUsing(function ($component, $file) {
                         return \App\Services\Image\ImageOptimizer::optimizeAndStore($component, $file, maxDimension: 800, quality: 80);
                     }),
