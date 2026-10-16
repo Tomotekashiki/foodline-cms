@@ -133,7 +133,7 @@ Route::middleware(SetLocale::class)->group(function () {
 
     Route::get('/combos', function (Request $request) use ($formatImageUrl) {
         $locale = app()->getLocale();
-        $allItems = MenuItem::all()->keyBy('id');
+        $allItems = MenuItem::select('id', 'name', 'price', 'image_url', 'category')->get()->keyBy('id');
 
         $query = Combo::where('is_active', true);
         if ($request->has('furshet')) {
@@ -175,7 +175,7 @@ Route::middleware(SetLocale::class)->group(function () {
         });
 
         return response()->json($combos)
-            ->header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+            ->header('Cache-Control', 'public, max-age=120, s-maxage=600, stale-while-revalidate=1200');
     });
 
     $verifyRecaptcha = function (?string $token, string $ip): bool {
