@@ -77,7 +77,10 @@ Route::middleware(SetLocale::class)->group(function () {
             }
         }
 
-        $translations = Translation::where('key', '!=', \App\Services\SortOrderStore::STORAGE_KEY)->get();
+        $translations = Translation::whereNotIn('key', [
+            \App\Services\SortOrderStore::STORAGE_KEY,
+            \App\Services\PageSeoSync::SYNC_KEY,
+        ])->get();
         $result = [
             'ka' => [],
             'en' => [],
@@ -387,8 +390,10 @@ Route::middleware(SetLocale::class)->group(function () {
     })->middleware('throttle:10,1');
 
     Route::get('/pages', function () use ($mapTranslations) {
+        \App\Services\PageSeoSync::ensureSynced();
+
         return response()->json($mapTranslations(Page::where('is_active', true)->orderBy('order')->get()))
-            ->header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+            ->header('Cache-Control', 'public, max-age=0, s-maxage=15, stale-while-revalidate=30');
     });
 
     Route::get('/settings', function () {
@@ -432,7 +437,12 @@ Route::middleware(SetLocale::class)->group(function () {
         ]);
     });
 
-    Route::match(['get', 'post'], '/clear-cache', function () {
+    Route::match(['get', 'post'], '/clear-cache', function (Request $request) {
+        if ($request->boolean('resync_seo')) {
+            \App\Services\PageSeoSync::ensureSynced(true);
+        } else {
+            \App\Services\PageSeoSync::ensureSynced();
+        }
         try {
             \Illuminate\Support\Facades\Artisan::call('cache:clear');
             \Illuminate\Support\Facades\Artisan::call('view:clear');

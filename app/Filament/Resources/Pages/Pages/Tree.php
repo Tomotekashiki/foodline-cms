@@ -11,6 +11,12 @@ class Tree extends TreePage
 
     protected static int $maxDepth = 2;
 
+    public function mount(): void
+    {
+        \App\Services\PageSeoSync::ensureSynced();
+        parent::mount();
+    }
+
     protected function getTreeToolbarActions(): array
     {
         return [];

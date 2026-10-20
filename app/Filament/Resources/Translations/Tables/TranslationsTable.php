@@ -54,7 +54,10 @@ class TranslationsTable
                     ]),
             ])
             ->defaultSort('group', 'asc')
-            ->modifyQueryUsing(fn ($query) => $query->where('key', '!=', \App\Services\SortOrderStore::STORAGE_KEY))
+            ->modifyQueryUsing(fn ($query) => $query->whereNotIn('key', [
+                \App\Services\SortOrderStore::STORAGE_KEY,
+                \App\Services\PageSeoSync::SYNC_KEY,
+            ]))
             ->recordActions([
                 EditAction::make(),
             ])
