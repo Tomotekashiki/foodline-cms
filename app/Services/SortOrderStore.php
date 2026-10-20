@@ -63,7 +63,26 @@ class SortOrderStore
         $all = static::all();
         $all[$type][(string) $id] = $sortOrder;
         static::$cache = $all;
+        static::persist($all);
+    }
 
+    public static function reorder(string $type, array $orderedIds): void
+    {
+        $all = static::all();
+        if (! isset($all[$type]) || ! is_array($all[$type])) {
+            $all[$type] = [];
+        }
+
+        foreach (array_values($orderedIds) as $index => $id) {
+            $all[$type][(string) $id] = $index + 1;
+        }
+
+        static::$cache = $all;
+        static::persist($all);
+    }
+
+    protected static function persist(array $all): void
+    {
         try {
             $json = json_encode($all, JSON_UNESCAPED_UNICODE);
             $record = Translation::firstOrNew(['key' => static::STORAGE_KEY]);

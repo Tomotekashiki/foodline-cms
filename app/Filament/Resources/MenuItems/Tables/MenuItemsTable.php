@@ -51,7 +51,12 @@ class MenuItemsTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->modifyQueryUsing(fn ($query) => \App\Services\SortOrderStore::applyOrder($query, 'menu_item'))
+            ->reorderable('sort_order')
+            ->reorderRecordsTriggerAction(
+                fn (\Filament\Actions\Action $action, bool $isReordering) => $action
+                    ->button()
+                    ->label($isReordering ? 'Done Reordering' : 'Reorder')
+            )
             ->filters([
                 SelectFilter::make('category')
                     ->label('Category')

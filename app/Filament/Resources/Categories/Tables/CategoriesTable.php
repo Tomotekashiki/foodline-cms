@@ -34,6 +34,11 @@ class CategoriesTable
             ])
             ->defaultSort('sort_order', 'asc')
             ->reorderable('sort_order')
+            ->reorderRecordsTriggerAction(
+                fn (\Filament\Actions\Action $action, bool $isReordering) => $action
+                    ->button()
+                    ->label($isReordering ? 'Done Reordering' : 'Reorder')
+            )
             ->recordActions([
                 EditAction::make(),
             ])

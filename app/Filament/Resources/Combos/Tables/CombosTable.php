@@ -60,7 +60,12 @@ class CombosTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->modifyQueryUsing(fn ($query) => \App\Services\SortOrderStore::applyOrder($query, 'combo'))
+            ->reorderable('sort_order')
+            ->reorderRecordsTriggerAction(
+                fn (\Filament\Actions\Action $action, bool $isReordering) => $action
+                    ->button()
+                    ->label($isReordering ? 'Done Reordering' : 'Reorder')
+            )
             ->filters([
                 TernaryFilter::make('is_furshet')
                     ->label('Buffet menu'),
