@@ -91,7 +91,7 @@ Route::middleware(SetLocale::class)->group(function () {
 
     Route::get('/categories', function () use ($mapTranslations) {
         return response()->json($mapTranslations(Category::where('is_active', true)->orderBy('sort_order')->get()))
-            ->header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+            ->header('Cache-Control', 'public, max-age=0, s-maxage=15, stale-while-revalidate=30');
     });
 
     Route::get('/menu-items', function (Request $request) use ($mapTranslations) {
@@ -142,7 +142,7 @@ Route::middleware(SetLocale::class)->group(function () {
         })->values();
 
         return response()->json($mapTranslations($items))
-            ->header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+            ->header('Cache-Control', 'public, max-age=0, s-maxage=15, stale-while-revalidate=30');
     });
 
     Route::get('/combos', function (Request $request) use ($formatImageUrl) {
@@ -195,7 +195,7 @@ Route::middleware(SetLocale::class)->group(function () {
         });
 
         return response()->json($combos)
-            ->header('Cache-Control', 'public, max-age=120, s-maxage=600, stale-while-revalidate=1200');
+            ->header('Cache-Control', 'public, max-age=0, s-maxage=15, stale-while-revalidate=30');
     });
 
     $verifyRecaptcha = function (?string $token, string $ip): bool {
@@ -402,5 +402,27 @@ Route::middleware(SetLocale::class)->group(function () {
             'deleted_vercel_blobs' => count($deletedBlobs),
             'urls' => $deletedBlobs,
         ]);
+    });
+
+    Route::match(['get', 'post'], '/clear-cache', function () {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('cache:clear');
+            \Illuminate\Support\Facades\Artisan::call('view:clear');
+            \Illuminate\Support\Facades\Artisan::call('config:clear');
+            \Illuminate\Support\Facades\Artisan::call('route:clear');
+        } catch (\Throwable $e) {
+        }
+
+        foreach (['/tmp/config.php', '/tmp/routes.php', '/tmp/events.php', '/tmp/services.php'] as $file) {
+            if (file_exists($file)) {
+                @unlink($file);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Application cache cleared successfully',
+            'timestamp' => now('Asia/Tbilisi')->toDateTimeString(),
+        ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     });
 });
