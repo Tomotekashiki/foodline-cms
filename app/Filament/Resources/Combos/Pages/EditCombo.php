@@ -21,6 +21,10 @@ class EditCombo extends EditRecord
     {
         $data['sort_order'] = $this->getRecord()->sort_order;
 
+        if (empty($data['description']['ka']) && ! empty($data['description']['ru']) && preg_match('/[\x{10A0}-\x{10FF}]/u', (string) $data['description']['ru'])) {
+            $data['description']['ka'] = $data['description']['ru'];
+        }
+
         return $data;
     }
 }

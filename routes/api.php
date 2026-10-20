@@ -35,11 +35,21 @@ Route::middleware(SetLocale::class)->group(function () {
     };
 
     $mapTranslations = function ($items) use ($formatImageUrl) {
-        return $items->map(function ($model) use ($formatImageUrl) {
+        $locale = app()->getLocale();
+
+        return $items->map(function ($model) use ($formatImageUrl, $locale) {
             $arr = $model->toArray();
             if (isset($model->translatable)) {
                 foreach ($model->translatable as $field) {
-                    $arr[$field] = $model->{$field};
+                    $val = $model->{$field};
+                    if ((empty($val) || $val === '') && method_exists($model, 'getTranslation')) {
+                        $val = $model->getTranslation($field, $locale, false)
+                            ?: $model->getTranslation($field, 'ka', false)
+                            ?: $model->getTranslation($field, 'en', false)
+                            ?: $model->getTranslation($field, 'ru', false)
+                            ?: '';
+                    }
+                    $arr[$field] = $val;
                 }
             }
             if (isset($arr['image_url'])) {
@@ -161,9 +171,27 @@ Route::middleware(SetLocale::class)->group(function () {
             ->sortBy(fn ($combo) => sprintf('%08d_%08d', ((int) ($combo->sort_order ?? 0)) + 1000000, $combo->id))
             ->values()
             ->map(function ($combo) use ($formatImageUrl, $locale, $allItems) {
+            $kaDesc = $combo->getTranslation('description', 'ka', false);
+            $ruDesc = $combo->getTranslation('description', 'ru', false);
+            if (empty($kaDesc) && ! empty($ruDesc) && preg_match('/[\x{10A0}-\x{10FF}]/u', $ruDesc)) {
+                try {
+                    $combo->setTranslation('description', 'ka', $ruDesc);
+                    $combo->save();
+                } catch (\Throwable $e) {
+                }
+            }
+
             $arr = $combo->toArray();
-            $arr['name'] = $combo->name;
-            $arr['description'] = $combo->description;
+            $arr['name'] = $combo->getTranslation('name', $locale, false)
+                ?: $combo->getTranslation('name', 'ka', false)
+                ?: $combo->getTranslation('name', 'en', false)
+                ?: $combo->getTranslation('name', 'ru', false)
+                ?: '';
+            $arr['description'] = $combo->getTranslation('description', $locale, false)
+                ?: $combo->getTranslation('description', 'ka', false)
+                ?: $combo->getTranslation('description', 'en', false)
+                ?: $combo->getTranslation('description', 'ru', false)
+                ?: '';
             $arr['image_url'] = $formatImageUrl($combo->image_url);
             $arr['is_furshet'] = (bool) $combo->is_furshet;
 

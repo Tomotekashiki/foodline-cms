@@ -22,11 +22,11 @@ class MenuItemForm
                         Textarea::make('description.ka')->label('Description')->columnSpanFull(),
                     ]),
                     Tabs\Tab::make('English (EN)')->schema([
-                        TextInput::make('name.en')->label('Name')->required(),
+                        TextInput::make('name.en')->label('Name'),
                         Textarea::make('description.en')->label('Description')->columnSpanFull(),
                     ]),
                     Tabs\Tab::make('Russian (RU)')->schema([
-                        TextInput::make('name.ru')->label('Name')->required(),
+                        TextInput::make('name.ru')->label('Name'),
                         Textarea::make('description.ru')->label('Description')->columnSpanFull(),
                     ]),
                 ])->columnSpanFull(),
