@@ -21,16 +21,6 @@ class AppServiceProvider extends ServiceProvider
     {
         if (isset($_SERVER['VERCEL']) || isset($_ENV['VERCEL']) || getenv('VERCEL') || app()->environment('production')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
-
-            if (! file_exists('/tmp/migrated_sort_order_v1')) {
-                try {
-                    \Illuminate\Support\Facades\DB::statement('ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0');
-                    \Illuminate\Support\Facades\DB::statement('ALTER TABLE combos ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0');
-                    @file_put_contents('/tmp/migrated_sort_order_v1', '1');
-                } catch (\Throwable $e) {
-                    // Ignore if already migrated or DB unavailable during build
-                }
-            }
         }
 
         \Illuminate\Support\Facades\Storage::extend('vercel_blob', function ($app, $config) {

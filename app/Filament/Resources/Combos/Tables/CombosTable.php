@@ -41,7 +41,7 @@ class CombosTable
                 TextColumn::make('sort_order')
                     ->label('Sort Order')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable(query: fn ($query, string $direction) => \App\Services\SortOrderStore::applyOrder($query, 'combo', $direction)),
                 IconColumn::make('is_furshet')
                     ->label('Buffet menu')
                     ->boolean()
@@ -60,8 +60,7 @@ class CombosTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort('sort_order', 'asc')
-            ->reorderable('sort_order')
+            ->modifyQueryUsing(fn ($query) => \App\Services\SortOrderStore::applyOrder($query, 'combo'))
             ->filters([
                 TernaryFilter::make('is_furshet')
                     ->label('Buffet menu'),

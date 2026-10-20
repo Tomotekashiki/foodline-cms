@@ -54,6 +54,7 @@ class TranslationsTable
                     ]),
             ])
             ->defaultSort('group', 'asc')
+            ->modifyQueryUsing(fn ($query) => $query->where('key', '!=', \App\Services\SortOrderStore::STORAGE_KEY))
             ->recordActions([
                 EditAction::make(),
             ])

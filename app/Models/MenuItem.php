@@ -1,16 +1,60 @@
 <?php
+
 namespace App\Models;
+
+use App\Services\SortOrderStore;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Translatable\HasTranslations;
-class MenuItem extends Model {
+
+class MenuItem extends Model
+{
     use HasTranslations;
+
     public array $translatable = ['name', 'description'];
+
     protected $guarded = [];
+
+    protected $appends = ['sort_order'];
 
     protected $casts = [
         'is_furshet' => 'boolean',
         'is_active' => 'boolean',
         'price' => 'decimal:2',
-        'sort_order' => 'integer',
     ];
+
+    public ?int $pendingSortOrder = null;
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $model) {
+            if (array_key_exists('sort_order', $model->attributes)) {
+                $model->pendingSortOrder = (int) $model->attributes['sort_order'];
+                unset($model->attributes['sort_order']);
+            }
+
+            if ($model->pendingSortOrder !== null && $model->exists && $model->getKey()) {
+                SortOrderStore::set('menu_item', $model->getKey(), $model->pendingSortOrder);
+            }
+        });
+
+        static::saved(function (self $model) {
+            if ($model->pendingSortOrder !== null && $model->getKey()) {
+                SortOrderStore::set('menu_item', $model->getKey(), $model->pendingSortOrder);
+            }
+        });
+    }
+
+    public function getSortOrderAttribute(): int
+    {
+        if ($this->pendingSortOrder !== null) {
+            return $this->pendingSortOrder;
+        }
+
+        return SortOrderStore::get('menu_item', $this->getKey());
+    }
+
+    public function setSortOrderAttribute($value): void
+    {
+        $this->pendingSortOrder = (int) ($value ?? 0);
+    }
 }

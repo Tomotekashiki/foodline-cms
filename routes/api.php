@@ -67,7 +67,7 @@ Route::middleware(SetLocale::class)->group(function () {
             }
         }
 
-        $translations = Translation::all();
+        $translations = Translation::where('key', '!=', \App\Services\SortOrderStore::STORAGE_KEY)->get();
         $result = [
             'ka' => [],
             'en' => [],
@@ -123,9 +123,7 @@ Route::middleware(SetLocale::class)->group(function () {
             }
         }
 
-        $query = MenuItem::where('is_active', true)
-            ->orderBy('sort_order', 'asc')
-            ->orderBy('id', 'asc');
+        $query = MenuItem::where('is_active', true)->orderBy('id', 'asc');
         if ($request->has('furshet')) {
             $query->where('is_furshet', filter_var($request->query('furshet'), FILTER_VALIDATE_BOOLEAN));
         }
@@ -140,7 +138,7 @@ Route::middleware(SetLocale::class)->group(function () {
             $catOrder = $categoryOrderMap[$item->category] ?? 999999;
             $itemOrder = (int) ($item->sort_order ?? 0);
 
-            return sprintf('%08d_%08d_%08d', $catOrder, $itemOrder, $item->id);
+            return sprintf('%08d_%08d_%08d', $catOrder, $itemOrder + 1000000, $item->id);
         })->values();
 
         return response()->json($mapTranslations($items))
@@ -149,20 +147,20 @@ Route::middleware(SetLocale::class)->group(function () {
 
     Route::get('/combos', function (Request $request) use ($formatImageUrl) {
         $locale = app()->getLocale();
-        $allItems = MenuItem::select('id', 'name', 'price', 'image_url', 'category', 'sort_order')
-            ->orderBy('sort_order', 'asc')
+        $allItems = MenuItem::select('id', 'name', 'price', 'image_url', 'category')
             ->orderBy('id', 'asc')
             ->get()
             ->keyBy('id');
 
-        $query = Combo::where('is_active', true)
-            ->orderBy('sort_order', 'asc')
-            ->orderBy('id', 'asc');
+        $query = Combo::where('is_active', true)->orderBy('id', 'asc');
         if ($request->has('furshet')) {
             $query->where('is_furshet', filter_var($request->query('furshet'), FILTER_VALIDATE_BOOLEAN));
         }
 
-        $combos = $query->get()->map(function ($combo) use ($formatImageUrl, $locale, $allItems) {
+        $combos = $query->get()
+            ->sortBy(fn ($combo) => sprintf('%08d_%08d', ((int) ($combo->sort_order ?? 0)) + 1000000, $combo->id))
+            ->values()
+            ->map(function ($combo) use ($formatImageUrl, $locale, $allItems) {
             $arr = $combo->toArray();
             $arr['name'] = $combo->name;
             $arr['description'] = $combo->description;

@@ -33,7 +33,7 @@ class MenuItemsTable
                 TextColumn::make('sort_order')
                     ->label('Sort Order')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable(query: fn ($query, string $direction) => \App\Services\SortOrderStore::applyOrder($query, 'menu_item', $direction)),
                 TextColumn::make('badge')
                     ->searchable(),
                 IconColumn::make('is_furshet')
@@ -51,8 +51,7 @@ class MenuItemsTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort('sort_order', 'asc')
-            ->reorderable('sort_order')
+            ->modifyQueryUsing(fn ($query) => \App\Services\SortOrderStore::applyOrder($query, 'menu_item'))
             ->filters([
                 SelectFilter::make('category')
                     ->label('Category')
