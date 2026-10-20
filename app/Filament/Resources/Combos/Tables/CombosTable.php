@@ -38,6 +38,10 @@ class CombosTable
                     ->label('Badge')
                     ->badge()
                     ->searchable(),
+                TextColumn::make('sort_order')
+                    ->label('Sort Order')
+                    ->numeric()
+                    ->sortable(),
                 IconColumn::make('is_furshet')
                     ->label('Buffet menu')
                     ->boolean()
@@ -56,6 +60,8 @@ class CombosTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('sort_order', 'asc')
+            ->reorderable('sort_order')
             ->filters([
                 TernaryFilter::make('is_furshet')
                     ->label('Buffet menu'),

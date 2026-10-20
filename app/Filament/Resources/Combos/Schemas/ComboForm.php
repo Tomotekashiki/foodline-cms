@@ -78,6 +78,10 @@ class ComboForm
                 TextInput::make('badge')
                     ->label('Badge')
                     ->placeholder('e.g. Bestseller, Premium'),
+                TextInput::make('sort_order')
+                    ->label('Sort Order')
+                    ->numeric()
+                    ->default(0),
                 Toggle::make('is_furshet')
                     ->label('Buffet menu')
                     ->default(false),

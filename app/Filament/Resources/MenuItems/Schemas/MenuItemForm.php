@@ -67,6 +67,10 @@ class MenuItemForm
                     ->preload()
                     ->required(),
                 TextInput::make('badge'),
+                TextInput::make('sort_order')
+                    ->label('Sort Order')
+                    ->numeric()
+                    ->default(0),
                 Toggle::make('is_furshet')
                     ->label('Buffet menu')
                     ->default(false),

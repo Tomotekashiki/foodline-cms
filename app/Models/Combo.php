@@ -11,11 +11,12 @@ class Combo extends Model {
         'inclusions' => 'array',
         'menu_item_ids' => 'array',
         'is_furshet' => 'boolean',
+        'sort_order' => 'integer',
     ];
 
     public function menuItems() {
         $ids = $this->menu_item_ids ?? [];
         if (empty($ids)) return collect();
-        return MenuItem::whereIn('id', $ids)->get();
+        return MenuItem::whereIn('id', $ids)->orderBy('sort_order')->orderBy('id')->get();
     }
 }

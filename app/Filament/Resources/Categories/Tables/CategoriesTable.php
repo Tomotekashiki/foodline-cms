@@ -33,6 +33,7 @@ class CategoriesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('sort_order', 'asc')
+            ->reorderable('sort_order')
             ->recordActions([
                 EditAction::make(),
             ])

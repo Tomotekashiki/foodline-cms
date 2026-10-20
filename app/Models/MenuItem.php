@@ -11,5 +11,6 @@ class MenuItem extends Model {
         'is_furshet' => 'boolean',
         'is_active' => 'boolean',
         'price' => 'decimal:2',
+        'sort_order' => 'integer',
     ];
 }

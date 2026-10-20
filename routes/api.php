@@ -95,26 +95,37 @@ Route::middleware(SetLocale::class)->group(function () {
     });
 
     Route::get('/menu-items', function (Request $request) use ($mapTranslations) {
-        $allCategories = Category::all();
+        $allCategories = Category::orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
         $categoriesMap = [];
-        foreach ($allCategories as $c) {
+        $categoryOrderMap = [];
+        foreach ($allCategories as $index => $c) {
             $name = $c->name;
             $slug = $c->slug;
             $enName = $c->getTranslation('name', 'en');
             $kaName = $c->getTranslation('name', 'ka');
+            $sortVal = ((int) ($c->sort_order ?? 0)) * 1000 + $index;
             if ($slug) {
                 $categoriesMap[$slug] = $name;
+                $categoryOrderMap[$slug] = $sortVal;
             }
             if ($enName) {
                 $categoriesMap[$enName] = $name;
+                $categoryOrderMap[$enName] = $sortVal;
             }
             if ($kaName) {
                 $categoriesMap[$kaName] = $name;
+                $categoryOrderMap[$kaName] = $sortVal;
             }
             $categoriesMap[$c->id] = $name;
+            $categoryOrderMap[$c->id] = $sortVal;
+            if ($name) {
+                $categoryOrderMap[$name] = $sortVal;
+            }
         }
 
-        $query = MenuItem::where('is_active', true);
+        $query = MenuItem::where('is_active', true)
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('id', 'asc');
         if ($request->has('furshet')) {
             $query->where('is_furshet', filter_var($request->query('furshet'), FILTER_VALIDATE_BOOLEAN));
         }
@@ -125,7 +136,12 @@ Route::middleware(SetLocale::class)->group(function () {
             }
 
             return $item;
-        });
+        })->sortBy(function ($item) use ($categoryOrderMap) {
+            $catOrder = $categoryOrderMap[$item->category] ?? 999999;
+            $itemOrder = (int) ($item->sort_order ?? 0);
+
+            return sprintf('%08d_%08d_%08d', $catOrder, $itemOrder, $item->id);
+        })->values();
 
         return response()->json($mapTranslations($items))
             ->header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
@@ -133,9 +149,15 @@ Route::middleware(SetLocale::class)->group(function () {
 
     Route::get('/combos', function (Request $request) use ($formatImageUrl) {
         $locale = app()->getLocale();
-        $allItems = MenuItem::select('id', 'name', 'price', 'image_url', 'category')->get()->keyBy('id');
+        $allItems = MenuItem::select('id', 'name', 'price', 'image_url', 'category', 'sort_order')
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('id', 'asc')
+            ->get()
+            ->keyBy('id');
 
-        $query = Combo::where('is_active', true);
+        $query = Combo::where('is_active', true)
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('id', 'asc');
         if ($request->has('furshet')) {
             $query->where('is_furshet', filter_var($request->query('furshet'), FILTER_VALIDATE_BOOLEAN));
         }
