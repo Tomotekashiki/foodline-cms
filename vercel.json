@@ -59,6 +59,7 @@
     "SESSION_SECURE_COOKIE": "true",
     "SESSION_SAME_SITE": "lax",
     "FILESYSTEM_DISK": "local",
-    "LOG_CHANNEL": "stderr"
+    "LOG_CHANNEL": "stderr",
+    "RECAPTCHA_SECRET_KEY": "6Lc24sEtAAAAAEXxA_FKTBOOIrhOLqG1AQRRT493"
   }
 }

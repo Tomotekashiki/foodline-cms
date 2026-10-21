@@ -266,7 +266,7 @@ Route::middleware(SetLocale::class)->group(function () {
         if (empty($token)) {
             return false;
         }
-        $secretKey = config('services.recaptcha.secret', env('RECAPTCHA_SECRET_KEY'));
+        $secretKey = config('services.recaptcha.secret') ?: env('RECAPTCHA_SECRET_KEY', '6Lc24sEtAAAAAEXxA_FKTBOOIrhOLqG1AQRRT493');
         if (empty($secretKey)) {
             Log::warning('RECAPTCHA_SECRET_KEY not configured.');
 
@@ -276,7 +276,6 @@ Route::middleware(SetLocale::class)->group(function () {
             $verifyRes = Http::asForm()->timeout(5)->post('https://www.google.com/recaptcha/api/siteverify', [
                 'secret' => $secretKey,
                 'response' => $token,
-                'remoteip' => $ip,
             ]);
 
             return (bool) $verifyRes->json('success');
