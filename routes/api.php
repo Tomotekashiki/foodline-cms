@@ -266,7 +266,7 @@ Route::middleware(SetLocale::class)->group(function () {
         if (empty($token)) {
             return false;
         }
-        $secretKey = config('services.recaptcha.secret') ?: env('RECAPTCHA_SECRET_KEY', '6Lc24sEtAAAAAEXxA_FKTBOOIrhOLqG1AQRRT493');
+        $secretKey = config('services.recaptcha.secret') ?: env('RECAPTCHA_SECRET_KEY');
         if (empty($secretKey)) {
             Log::warning('RECAPTCHA_SECRET_KEY not configured.');
 
@@ -486,12 +486,8 @@ Route::middleware(SetLocale::class)->group(function () {
         ]);
     });
 
-    Route::match(['get', 'post'], '/clear-cache', function (Request $request) {
-        if ($request->boolean('resync_seo')) {
-            \App\Services\PageSeoSync::ensureSynced(true);
-        } else {
-            \App\Services\PageSeoSync::ensureSynced();
-        }
+    Route::match(['get', 'post'], '/clear-cache', function () {
+        \App\Services\PageSeoSync::ensureSynced();
         try {
             \Illuminate\Support\Facades\Artisan::call('cache:clear');
             \Illuminate\Support\Facades\Artisan::call('view:clear');
@@ -511,5 +507,5 @@ Route::middleware(SetLocale::class)->group(function () {
             'message' => 'Application cache cleared successfully',
             'timestamp' => now('Asia/Tbilisi')->toDateTimeString(),
         ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-    });
+    })->middleware('throttle:10,1');
 });
