@@ -20,6 +20,7 @@ class EditMenuItem extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $data['sort_order'] = $this->getRecord()->sort_order;
+        $data['min_qty'] = $this->getRecord()->min_qty;
 
         return $data;
     }

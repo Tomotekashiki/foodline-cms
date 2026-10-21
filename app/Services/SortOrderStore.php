@@ -20,7 +20,12 @@ class SortOrderStore
         try {
             $record = Translation::where('key', static::STORAGE_KEY)->first();
             if (! $record) {
-                return static::$cache = ['menu_item' => [], 'combo' => []];
+                return static::$cache = [
+                    'menu_item' => [],
+                    'combo' => [],
+                    'min_qty' => [],
+                    'min_order_amount' => 0,
+                ];
             }
 
             $raw = $record->getTranslation('text', 'en')
@@ -32,13 +37,20 @@ class SortOrderStore
                     return static::$cache = [
                         'menu_item' => is_array($decoded['menu_item'] ?? null) ? $decoded['menu_item'] : [],
                         'combo' => is_array($decoded['combo'] ?? null) ? $decoded['combo'] : [],
+                        'min_qty' => is_array($decoded['min_qty'] ?? null) ? $decoded['min_qty'] : [],
+                        'min_order_amount' => isset($decoded['min_order_amount']) ? max(0, (float) $decoded['min_order_amount']) : 0,
                     ];
                 }
             }
         } catch (\Throwable $e) {
         }
 
-        return static::$cache = ['menu_item' => [], 'combo' => []];
+        return static::$cache = [
+            'menu_item' => [],
+            'combo' => [],
+            'min_qty' => [],
+            'min_order_amount' => 0,
+        ];
     }
 
     public static function getMap(string $type): array
@@ -62,6 +74,43 @@ class SortOrderStore
     {
         $all = static::all();
         $all[$type][(string) $id] = $sortOrder;
+        static::$cache = $all;
+        static::persist($all);
+    }
+
+    public static function getMinQty(int|string|null $id): int
+    {
+        if ($id === null) {
+            return 1;
+        }
+        $all = static::all();
+        $val = (int) ($all['min_qty'][(string) $id] ?? 1);
+
+        return max(1, $val);
+    }
+
+    public static function setMinQty(int|string $id, int $minQty): void
+    {
+        $all = static::all();
+        if (! isset($all['min_qty']) || ! is_array($all['min_qty'])) {
+            $all['min_qty'] = [];
+        }
+        $all['min_qty'][(string) $id] = max(1, $minQty);
+        static::$cache = $all;
+        static::persist($all);
+    }
+
+    public static function getMinOrderAmount(): float
+    {
+        $all = static::all();
+
+        return max(0, (float) ($all['min_order_amount'] ?? 0));
+    }
+
+    public static function setMinOrderAmount(float|int $amount): void
+    {
+        $all = static::all();
+        $all['min_order_amount'] = max(0, round((float) $amount, 2));
         static::$cache = $all;
         static::persist($all);
     }

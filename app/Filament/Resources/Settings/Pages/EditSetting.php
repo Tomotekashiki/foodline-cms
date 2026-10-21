@@ -16,4 +16,11 @@ class EditSetting extends EditRecord
             DeleteAction::make(),
         ];
     }
+
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $data['min_order_amount'] = $this->getRecord()->min_order_amount;
+
+        return $data;
+    }
 }

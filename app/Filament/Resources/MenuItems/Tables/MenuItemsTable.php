@@ -30,6 +30,9 @@ class MenuItemsTable
                 TextColumn::make('category')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('min_qty')
+                    ->label('Min Qty')
+                    ->numeric(),
                 TextColumn::make('sort_order')
                     ->label('Sort Order')
                     ->numeric()

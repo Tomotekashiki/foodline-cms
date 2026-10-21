@@ -16,6 +16,9 @@ class SettingsTable
                     ->label('Days Ahead (Lead Time)')
                     ->suffix(' days')
                     ->sortable(),
+                TextColumn::make('min_order_amount')
+                    ->label('Min Order Amount')
+                    ->prefix('₾ '),
                 TextColumn::make('updated_at')
                     ->label('Last Updated')
                     ->dateTime()

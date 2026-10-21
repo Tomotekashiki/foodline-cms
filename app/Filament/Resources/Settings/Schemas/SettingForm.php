@@ -20,6 +20,15 @@ class SettingForm
                     ->default(1)
                     ->required(),
 
+                TextInput::make('min_order_amount')
+                    ->label('Minimum Order Amount (მინიმალური შეკვეთის თანხა)')
+                    ->helperText('მინიმალური ჯამური თანხა ლარებში (₾), რომელზე ნაკლებზეც მომხმარებელი ჯავშანს ვერ გააფორმებს (მაგ: 300). 0 = შეზღუდვის გარეშე.')
+                    ->prefix('₾')
+                    ->numeric()
+                    ->minValue(0)
+                    ->default(0)
+                    ->required(),
+
                 ViewField::make('disabled_dates')
                     ->label('Blackout / Disabled Calendar Dates')
                     ->helperText('Click on any date on the calendar below to toggle it on/off. Red dates are disabled/blacked out.')

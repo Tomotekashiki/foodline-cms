@@ -14,7 +14,7 @@ class MenuItem extends Model
 
     protected $guarded = [];
 
-    protected $appends = ['sort_order'];
+    protected $appends = ['sort_order', 'min_qty'];
 
     protected $casts = [
         'is_furshet' => 'boolean',
@@ -24,6 +24,8 @@ class MenuItem extends Model
 
     public ?int $pendingSortOrder = null;
 
+    public ?int $pendingMinQty = null;
+
     protected static function booted(): void
     {
         static::saving(function (self $model) {
@@ -32,14 +34,27 @@ class MenuItem extends Model
                 unset($model->attributes['sort_order']);
             }
 
+            if (array_key_exists('min_qty', $model->attributes)) {
+                $model->pendingMinQty = max(1, (int) $model->attributes['min_qty']);
+                unset($model->attributes['min_qty']);
+            }
+
             if ($model->pendingSortOrder !== null && $model->exists && $model->getKey()) {
                 SortOrderStore::set('menu_item', $model->getKey(), $model->pendingSortOrder);
+            }
+
+            if ($model->pendingMinQty !== null && $model->exists && $model->getKey()) {
+                SortOrderStore::setMinQty($model->getKey(), $model->pendingMinQty);
             }
         });
 
         static::saved(function (self $model) {
             if ($model->pendingSortOrder !== null && $model->getKey()) {
                 SortOrderStore::set('menu_item', $model->getKey(), $model->pendingSortOrder);
+            }
+
+            if ($model->pendingMinQty !== null && $model->getKey()) {
+                SortOrderStore::setMinQty($model->getKey(), $model->pendingMinQty);
             }
         });
     }
@@ -56,5 +71,19 @@ class MenuItem extends Model
     public function setSortOrderAttribute($value): void
     {
         $this->pendingSortOrder = (int) ($value ?? 0);
+    }
+
+    public function getMinQtyAttribute(): int
+    {
+        if ($this->pendingMinQty !== null) {
+            return max(1, $this->pendingMinQty);
+        }
+
+        return SortOrderStore::getMinQty($this->getKey());
+    }
+
+    public function setMinQtyAttribute($value): void
+    {
+        $this->pendingMinQty = max(1, (int) ($value ?? 1));
     }
 }

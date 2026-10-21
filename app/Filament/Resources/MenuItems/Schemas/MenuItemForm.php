@@ -67,6 +67,13 @@ class MenuItemForm
                     ->preload()
                     ->required(),
                 TextInput::make('badge'),
+                TextInput::make('min_qty')
+                    ->label('Minimum Quantity (მინ. რაოდენობა)')
+                    ->helperText('მინიმალური რაოდენობა, რომელზე ნაკლებსაც მომხმარებელი ვერ აიღებს (მაგ: 1, 5)')
+                    ->numeric()
+                    ->minValue(1)
+                    ->default(1)
+                    ->required(),
                 TextInput::make('sort_order')
                     ->label('Sort Order')
                     ->numeric()

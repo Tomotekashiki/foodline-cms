@@ -77,6 +77,39 @@ Route::middleware(SetLocale::class)->group(function () {
             }
         }
 
+        $newKeys = [
+            'min_qty_badge' => [
+                'group' => 'Menu & Services',
+                'text' => [
+                    'ka' => 'მინ. {count} ცალი',
+                    'en' => 'Min. {count} pcs',
+                    'ru' => 'Мин. {count} шт.',
+                ],
+            ],
+            'min_order_warning' => [
+                'group' => 'Booking Page',
+                'text' => [
+                    'ka' => 'მინიმალური შეკვეთა: ₾ {min} (აკლია ₾ {diff})',
+                    'en' => 'Minimum order: ₾ {min} (₾ {diff} more needed)',
+                    'ru' => 'Минимальный заказ: ₾ {min} (не хватает ₾ {diff})',
+                ],
+            ],
+            'min_order_booking_error' => [
+                'group' => 'Booking Page',
+                'text' => [
+                    'ka' => 'ჯავშნის გასაფორმებლად მინიმალური შეკვეთის თანხაა ₾ {min}. გთხოვთ დაამატოთ პროდუქტები კიდევ ₾ {diff}-ის ოდენობით.',
+                    'en' => 'Minimum order amount is ₾ {min}. Please add ₾ {diff} more to complete your booking.',
+                    'ru' => 'Минимальная сумма заказа — ₾ {min}. Пожалуйста, добавьте позиции еще на ₾ {diff} для оформления брони.',
+                ],
+            ],
+        ];
+        foreach ($newKeys as $k => $v) {
+            try {
+                Translation::firstOrCreate(['key' => $k], $v);
+            } catch (Throwable $e) {
+            }
+        }
+
         $translations = Translation::whereNotIn('key', [
             \App\Services\SortOrderStore::STORAGE_KEY,
             \App\Services\PageSeoSync::SYNC_KEY,
@@ -307,6 +340,15 @@ Route::middleware(SetLocale::class)->group(function () {
             return response()->json(['message' => 'No items selected.'], 422);
         }
 
+        foreach ($requestedItems as $id => $qty) {
+            $item = $menuItems[$id] ?? null;
+            if ($item && $qty < $item->min_qty) {
+                return response()->json([
+                    'message' => "პროდუქტის ({$item->name}) მინიმალური რაოდენობაა {$item->min_qty}.",
+                ], 422);
+            }
+        }
+
         $customLines = $requestedItems->map(function (int $qty, $id) use ($menuItems) {
             $item = $menuItems[$id];
 
@@ -315,7 +357,7 @@ Route::middleware(SetLocale::class)->group(function () {
                 'name' => $item->name,
                 'price' => (float) $item->price,
                 'qty' => $qty,
-                'category' => $item->category?->name ?? null,
+                'category' => is_object($item->category) ? ($item->category->name ?? null) : $item->category,
             ];
         })->values()->all();
 
@@ -333,6 +375,13 @@ Route::middleware(SetLocale::class)->group(function () {
 
         $total = collect($customLines)->sum(fn ($l) => $l['price'] * $l['qty'])
             + collect($comboLines)->sum(fn ($l) => $l['price'] * $l['qty']);
+
+        $minOrderAmount = Setting::getMinOrderAmount();
+        if ($minOrderAmount > 0 && round($total, 2) < $minOrderAmount) {
+            return response()->json([
+                'message' => "შეკვეთის მინიმალური თანხაა ₾ {$minOrderAmount}.",
+            ], 422);
+        }
 
         $booking = Booking::create([
             'full_name' => $validated['full_name'],
@@ -401,8 +450,9 @@ Route::middleware(SetLocale::class)->group(function () {
 
         return response()->json([
             'min_booking_days_ahead' => (int) ($setting?->min_booking_days_ahead ?? 1),
+            'min_order_amount' => (float) Setting::getMinOrderAmount(),
             'disabled_dates' => $setting?->disabled_dates ?? [],
-        ])->header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+        ])->header('Cache-Control', 'public, max-age=0, s-maxage=15, stale-while-revalidate=30');
     });
 
     Route::match(['get', 'post'], '/cron/clean-tmp', function (Request $request) {
