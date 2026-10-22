@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Middleware\SetLocale;
+use App\Mail\BookingNotificationMail;
+use App\Mail\ContactNotificationMail;
 use App\Models\Booking;
 use App\Models\Category;
 use App\Models\Combo;
@@ -12,6 +14,7 @@ use App\Models\Translation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -398,6 +401,15 @@ Route::middleware(SetLocale::class)->group(function () {
             'total_estimate' => round($total, 2),
         ]);
 
+        $notificationEmail = env('BOOKING_NOTIFICATION_EMAIL', 'info@foodline.ge');
+        try {
+            Mail::to($notificationEmail)->send(new BookingNotificationMail($booking));
+        } catch (\Throwable $e) {
+            Log::error('Failed to send booking notification email: '.$e->getMessage(), [
+                'booking_id' => $booking->id,
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'id' => $booking->id,
@@ -430,6 +442,15 @@ Route::middleware(SetLocale::class)->group(function () {
         $message = ContactMessage::create($validated);
 
         Log::info('New contact form submission ID: '.$message->id);
+
+        $notificationEmail = env('BOOKING_NOTIFICATION_EMAIL', 'info@foodline.ge');
+        try {
+            Mail::to($notificationEmail)->send(new ContactNotificationMail($message));
+        } catch (\Throwable $e) {
+            Log::error('Failed to send contact notification email: '.$e->getMessage(), [
+                'message_id' => $message->id,
+            ]);
+        }
 
         return response()->json([
             'success' => true,
