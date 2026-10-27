@@ -410,6 +410,18 @@ Route::middleware(SetLocale::class)->group(function () {
             ]);
         }
 
+        // Send confirmation email to customer if email is provided
+        if (! empty($booking->email) && filter_var($booking->email, FILTER_VALIDATE_EMAIL)) {
+            try {
+                Mail::to($booking->email)->send(new BookingNotificationMail($booking));
+            } catch (\Throwable $e) {
+                Log::error('Failed to send customer confirmation email: '.$e->getMessage(), [
+                    'booking_id' => $booking->id,
+                    'customer_email' => $booking->email,
+                ]);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'id' => $booking->id,
