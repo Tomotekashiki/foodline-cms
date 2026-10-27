@@ -195,14 +195,7 @@
                         </td>
                     </tr>
 
-                    <!-- Admin Action Button -->
-                    <tr>
-                        <td style="padding: 0 36px 36px 36px; text-align: center;">
-                            <a href="https://admin.foodline.ge/admin/bookings/{{ $booking->id }}/edit" target="_blank" style="display: inline-block; background-color: #f2ca50; color: #000000; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; padding: 14px 32px; border-radius: 8px; text-decoration: none; box-shadow: 0 4px 14px rgba(242, 202, 80, 0.4);">
-                                ჯავშნის გახსნა CMS ადმინში →
-                            </a>
-                        </td>
-                    </tr>
+
 
                     <!-- Footer -->
                     <tr>
